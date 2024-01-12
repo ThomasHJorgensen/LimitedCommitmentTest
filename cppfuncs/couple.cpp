@@ -43,6 +43,79 @@ namespace couple {
         return par->R*A + income_w + income_m;
     }
 
+    // pre-compute
+    double precompute(int t_next,sol_struct* sol,par_struct* par){
+        // precompute expected continuation values for men and women
+        // over power, love, Abar, Kwbar, Kmbar. 
+        
+        // loop through end-of-period states
+        #pragma omp parallel num_threads(par->threads)
+        {
+        #pragma omp for
+        for (int iP=0; iP<par->num_power; iP++){
+            for (int iL=0; iL<par->num_love; iL++){
+                double love = par->grid_love[iL];
+
+                int jA = 0;
+                for (int iA=0; iA<par->num_A_pd; iA++){
+                    double A_next = par->grid_A_pd[iA];
+                    jA = tools::binary_search(jA,par->num_A,par->grid_A,A_next);
+
+                    for (int iKw=0; iKw<par->num_K_pd; iKw++){
+                        double Kbar_w = par->grid_K_pd[iKw];
+                        for (int iKm=0; iKm<par->num_K_pd; iKm++){
+                            double Kbar_m = par->grid_K_pd[iKm];
+                            
+                            // next-period values
+                            int idx_next = index::couple(t_next,iP,0,0,0,0,par);
+                            double* Vw_next = &sol->Vw_remain_couple[idx_next]; 
+                            double* Vm_next = &sol->Vm_remain_couple[idx_next]; 
+
+                            // loop through shocks
+                            double EVw_plus = 0.0;
+                            double EVm_plus = 0.0;
+                            
+                            int jKw = 0;
+                            for (int iKw_next=0;iKw_next<par->num_shock_K;iKw_next++){
+                                double Kw_next = Kbar_w*par->grid_shock_K[iKw_next];
+                                jKw = tools::binary_search(jKw,par->num_K,par->grid_K,Kw_next);
+                                
+                                int jKm = 0;
+                                for (int iKm_next=0;iKm_next<par->num_shock_K;iKm_next++){
+                                    double Km_next = Kbar_m*par->grid_shock_K[iKm_next];
+                                    jKm = tools::binary_search(jKm,par->num_K,par->grid_K,Km_next);
+                                    
+                                    int jL = 0;
+                                    for (int iL_next = 0; iL_next < par->num_shock_love; iL_next++) {
+                                        double love_next = love + par->grid_shock_love[iL_next];
+                                        jL = tools::binary_search(jL,par->num_love,par->grid_love,love_next);
+                                        
+                                        double Vw_interp, Vm_interp;
+                                        tools::_interp_4d_2out(&Vw_interp,&Vm_interp, par->grid_love,par->grid_A,par->grid_K,par->grid_K,par->num_love,par->num_A,par->num_K,par->num_K, Vw_next,Vm_next, love_next,A_next,Kw_next,Km_next, jL,jA,jKw,jKm);
+                                        
+                                        double weight = par->grid_weight_love[iL_next] * par->grid_weight_K[iKw_next] * par->grid_weight_K[iKm_next];
+                                        EVw_plus += weight * Vw_interp;
+                                        EVm_plus += weight * Vm_interp;
+
+                                    }
+                                }
+                            }
+
+                            // store in solution
+                            int idx = index::index5(iP,iL,iA,iKw,iKm,par->num_power,par->num_love,par->num_A_pd,par->num_K_pd,par->num_K_pd);
+                            sol->EVw_pd[idx] = EVw_plus;
+                            sol->EVm_pd[idx] = EVm_plus;
+
+                        } // Kmbar
+                    } // Kwbar
+                } // Abar
+            } // love
+        } // power
+
+        } // pragma
+    
+    }
+
     //////////////////
     // VFI solution //
     double value_of_choice(double* Vw,double* Vm,double cons,double labor_w,double labor_m,double power,double love,double A,double Kw,double Km, int t,double* Vw_next,double* Vm_next,par_struct* par){

@@ -84,6 +84,10 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # cpp
         par.threads = 16
+
+        # post-decision states
+        par.num_A_pd = par.num_A * 2
+        par.num_K_pd = par.num_K * 2
         
     def allocate(self):
         par = self.par
@@ -127,7 +131,12 @@ class LimitedCommitmentModelClass(EconModelClass):
         sol.cons_m_remain_couple = np.nan + np.ones(shape_couple)      
 
         sol.power_idx = np.zeros(shape_couple,dtype=np.int_)            
-        sol.power = np.zeros(shape_couple)                              
+        sol.power = np.zeros(shape_couple)   
+
+        # post-decision pre-computation
+        shape_pd = (par.num_power,par.num_love,par.num_A_pd,par.num_K_pd,par.num_K_pd)     
+        sol.EVw_pd = np.nan + np.ones(shape_pd)
+        sol.EVm_pd = np.nan + np.ones(shape_pd)                           
 
         
         # simulation
@@ -201,6 +210,10 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         else:
             par.grid_shock_K,par.grid_weight_K = quadrature.log_normal_gauss_hermite(par.sigma_K,par.num_shock_K)
+
+        # post-decision states
+        par.grid_A_pd = nonlinspace(0.0,par.max_A,par.num_A_pd,1.1)       # asset grid
+        par.grid_K_pd = nonlinspace(0.0,par.max_K,par.num_K_pd,1.1)       # human capital grid
 
 
     def solve(self):
