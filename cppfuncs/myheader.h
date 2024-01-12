@@ -11,6 +11,9 @@
 
 #include "nlopt-2.4.2-dll64\nlopt.h"
 
+#define MAX(X,Y) ((X)>(Y)?(X):(Y))
+#define MIN(X,Y) ((X)<(Y)?(X):(Y))
+
 ///////////////
 // 2. custom //
 ///////////////

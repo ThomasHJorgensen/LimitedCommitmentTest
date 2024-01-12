@@ -13,15 +13,11 @@
 
 EXPORT void solve(sol_struct *sol, par_struct *par){
     
-    // Last period
-    single::solve_single_last(sol,par); 
-    couple::solve_couple(par->T-1,sol,par);
-
     // loop backwards
-    for (int t = par->T-2; t >= 0; t--){
+    for (int t = par->T-1; t >= 0; t--){
 
         single::solve_single(t,sol,par); 
-        couple::solve_couple(t,sol,par);
+        // couple::solve_couple(t,sol,par);
 
     }
 }
@@ -29,7 +25,7 @@ EXPORT void solve(sol_struct *sol, par_struct *par){
 
 EXPORT void simulate(sim_struct *sim, sol_struct *sol, par_struct *par){
     
-    // sim::model(sim,sol,par);
+    sim::model(sim,sol,par);
 
 }
 

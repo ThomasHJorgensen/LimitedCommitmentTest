@@ -14,7 +14,7 @@ namespace sim {
         double Vw_single = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,&sol->Vw_trans_single[idx_single],Aw_lag,Kw);
         double Vm_single = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,&sol->Vm_trans_single[idx_single],Am_lag,Km);
 
-        // value of reminaing a couple. [could be smarter about this interpolation]
+        // value of remaining a couple. [could be smarter about this interpolation]
         int idx_sol = index::couple(t,power_idx_lag,0,0,0,0,par); 
         double Vw_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_remain_couple[idx_sol], love,A_lag,Kw,Km);
         double Vm_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vm_remain_couple[idx_sol], love,A_lag,Kw,Km);
@@ -34,8 +34,8 @@ namespace sim {
                     
                 for (int iP=power_idx_lag+1; iP<par->num_power; iP++){ 
                     int idx = index::couple(t,iP,0,0,0,0,par);  // could agin be smarter with the interpolation
-                    Vw_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_remain_couple[idx_sol], love,A_lag,Kw,Km);
-                    Vm_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vm_remain_couple[idx_sol], love,A_lag,Kw,Km);
+                    Vw_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_remain_couple[idx], love,A_lag,Kw,Km);
+                    Vm_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vm_remain_couple[idx], love,A_lag,Kw,Km);
 
                     // check participation constraint
                     double Sw = couple::calc_marital_surplus(Vw_couple,Vw_single,par);
@@ -55,8 +55,8 @@ namespace sim {
                     // int idx = index::index4(t,iP,0,0,par->T,par->num_power,par->num_love,par->num_A); 
                     // tools::interp_2d_2out(par->grid_love,par->grid_A,par->num_love,par->num_A,&sol->Vw_remain_couple[idx],&sol->Vm_remain_couple[idx],love,A_lag, &Vw_couple, &Vm_couple);
                     int idx = index::couple(t,iP,0,0,0,0,par);  // could agin be smarter with the interpolation
-                    Vw_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_remain_couple[idx_sol], love,A_lag,Kw,Km);
-                    Vm_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vm_remain_couple[idx_sol], love,A_lag,Kw,Km);
+                    Vw_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_remain_couple[idx], love,A_lag,Kw,Km);
+                    Vm_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vm_remain_couple[idx], love,A_lag,Kw,Km);
 
                     // check participation constraint
                     double Sw = couple::calc_marital_surplus(Vw_couple,Vw_single,par);
@@ -79,7 +79,7 @@ namespace sim {
 
     void model(sim_struct *sim, sol_struct *sol, par_struct *par){
     
-        // pre-compute intra-temporal optimalallocation
+        // pre-compute intra-temporal optimal allocation
         #pragma omp parallel num_threads(par->threads)
         {
             #pragma omp for
@@ -137,7 +137,7 @@ namespace sim {
                         // optimal labor supply and consumption [could be smarter about this interpolation]
                         sim->labor_w[it] = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->labor_w_remain_couple[idx_sol], sim->love[it],A_lag,sim->Kw[it],sim->Km[it]);
                         sim->labor_m[it] = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->labor_m_remain_couple[idx_sol], sim->love[it],A_lag,sim->Kw[it],sim->Km[it]);
-                        double cons = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->cons_w_remain_couple[idx_sol], sim->love[it],A_lag,sim->Kw[it],sim->Kw[it]);
+                        double cons = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->cons_w_remain_couple[idx_sol], sim->love[it],A_lag,sim->Kw[it],sim->Kw[it]); // same for men and women in remain couple
                         sim->cons_w[it] = cons;
                         sim->cons_m[it] = cons;
 
@@ -159,7 +159,6 @@ namespace sim {
 
                     } else { // single
                         
-                        // THESE ITEMS ARE NOT STORED YET
                         // pick relevant solution for single, depending on whether just became single
                         int idx_sol_single = index::single(t,0,0,par); //index::index2(t,0,par->T,par->num_A);
                         double *labor_single_w = &sol->labor_w_trans_single[idx_sol_single];
