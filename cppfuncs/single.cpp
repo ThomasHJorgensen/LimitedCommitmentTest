@@ -77,10 +77,6 @@ namespace single {
             penalty += 1000.0*saving*saving;
             cons = resources_single(labor,A,K,gender,par);  
         }
-        // if (cons < solver_data->lower[1]) {
-        //     penalty += 1000.0*(solver_data->lower[1]-cons)*(solver_data->lower[1]-cons);
-        //     cons = solver_data->lower[1];
-        // } 
 
         // return negative value of choice
         return - value_of_choice(cons,labor,A,K,gender,t,V_next,par) + penalty;

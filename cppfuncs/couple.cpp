@@ -18,6 +18,12 @@ namespace couple {
         double *Vw_next;    
         double *Vm_next;    
 
+        int t;
+
+        double labor_w;
+        double labor_m;
+        double cons;
+
         sol_struct *sol;
         par_struct *par;
 
@@ -39,12 +45,52 @@ namespace couple {
 
     //////////////////
     // VFI solution //
-    double objfunc_couple_last(unsigned n, const double *x, double *grad, void *solver_data_in){
+    double value_of_choice(double* Vw,double* Vm,double cons,double labor_w,double labor_m,double power,double love,double A,double Kw,double Km, int t,double* Vw_next,double* Vm_next,par_struct* par){
+        // current utility flow
+        Vw[0] = utils::util(cons,labor_w,woman,par) + love;
+        Vm[0] = utils::util(cons,labor_m,man,par) + love;
+
+        // add continuation value 
+        double EVw_plus = 0.0;
+        double EVm_plus = 0.0;
+        if(t<par->T-1){
+            double A_next = resources(labor_w,labor_m,A,Kw,Km,par) - cons ;
+            double Kbar_w = utils::K_bar(Kw,labor_w,par);
+            double Kbar_m = utils::K_bar(Km,labor_m,par);
+
+            // [TODO: binary search only when needed and re-use index would speed this up since only output different!]
+            for (int iKw_next=0;iKw_next<par->num_shock_K;iKw_next++){
+                double Kw_next = Kbar_w*par->grid_shock_K[iKw_next];
+
+                for (int iKm_next=0;iKm_next<par->num_shock_K;iKm_next++){
+                    double Km_next = Kbar_m*par->grid_shock_K[iKm_next];
+
+                    for (int iL_next = 0; iL_next < par->num_shock_love; iL_next++) {
+                        double love_next = love + par->grid_shock_love[iL_next];
+
+                        double weight = par->grid_weight_love[iL_next] * par->grid_weight_K[iKw_next] * par->grid_weight_K[iKm_next];
+
+                        EVw_plus += weight * tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, Vw_next, love_next,A_next,Kw_next,Km_next);
+                        EVm_plus += weight * tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, Vm_next, love_next,A_next,Kw_next,Km_next);
+                    }
+                }
+            }
+
+            Vw[0] += par->beta*EVw_plus;
+            Vm[0] += par->beta*EVm_plus;
+
+        }
+
+
+        // return
+        return power*Vw[0] + (1.0-power)*Vm[0];
+    }
+
+    double objfunc_cons(unsigned n, const double *x, double *grad, void *solver_data_in){
         // unpack
         solver_couple_struct *solver_data = (solver_couple_struct *) solver_data_in;
 
-        double labor_w = x[0];
-        double labor_m = x[1];
+        double cons = x[0];
 
         int iP = solver_data->iP;
         double love = solver_data->love;
@@ -52,8 +98,52 @@ namespace couple {
         double Kw = solver_data->Kw;
         double Km = solver_data->Km;
 
-        sol_struct *sol = solver_data->sol;
+        // sol_struct *sol = solver_data->sol;
         par_struct *par = solver_data->par;
+
+        double* Vw = solver_data->Vw;
+        double* Vm = solver_data->Vm;
+
+        int t = solver_data->t;
+
+        double labor_w = solver_data->labor_w;
+        double labor_m = solver_data->labor_m;
+
+        double power = par->grid_power[iP];
+
+        // penalty and clip
+        double penalty = 0.0;
+        double saving = resources(labor_w,labor_m,A,Kw,Km,par) - cons;
+        if(saving<0.0){ // budget constraint: no borrowing
+            penalty += 1000.0*saving*saving;
+            cons -= saving; 
+        }
+        double low_cons = 1.0e-6;
+        if (cons <low_cons) {
+            penalty += 1000.0*(low_cons-cons)*(low_cons-cons);
+            cons = low_cons;
+        } 
+
+        // return negative value of choice
+        return - value_of_choice(Vw,Vm,cons,labor_w,labor_m,power,love,A,Kw,Km,t,solver_data->Vw_next,solver_data->Vm_next,par) + penalty;
+
+    }
+
+    double objfunc_labor(unsigned n, const double *x, double *grad, void *solver_data_in){
+        // unpack
+        solver_couple_struct *solver_data = (solver_couple_struct *) solver_data_in;
+
+        double labor_w = x[0];
+        double labor_m = x[1];
+
+        par_struct *par = solver_data->par;
+
+        int iP = solver_data->iP;
+        double love = solver_data->love;
+        double A = solver_data->A;
+        double Kw = solver_data->Kw;
+        double Km = solver_data->Km;
+        double power = par->grid_power[iP];
 
         double* lower = solver_data->lower;
         double* upper = solver_data->upper;
@@ -61,7 +151,10 @@ namespace couple {
         double* Vw = solver_data->Vw;
         double* Vm = solver_data->Vm;
 
-        double power = par->grid_power[iP];
+        int t = solver_data->t;
+
+        solver_data->labor_w = labor_w;
+        solver_data->labor_m = labor_m;
 
         // penalty and clip
         double penalty = 0.0;
@@ -78,40 +171,59 @@ namespace couple {
         } else if (labor_m > upper[1]) {
             penalty += 1000.0*(upper[1]-labor_m)*(upper[1]-labor_m);
             labor_m = upper[1];
+        } 
+
+        // solve for optimal consumption at this level of labor supply
+        double minf=0.0;
+        if (t<(par->T-1)){
+            int const dim = 1;
+            double lb[dim],ub[dim],y[dim];
+            
+            auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
+
+            // bounds
+            lb[0] = 1.0e-6;
+            ub[0] = resources(labor_w,labor_m,A,Kw,Km,par)-1.0e-6;
+            nlopt_set_lower_bounds(opt, lb);
+            nlopt_set_upper_bounds(opt, ub);
+
+            nlopt_set_ftol_rel(opt,1.0e-5);
+            nlopt_set_xtol_rel(opt,1.0e-5);
+
+            
+            nlopt_set_min_objective(opt, objfunc_cons, solver_data); 
+
+            // optimize
+            y[0] = MIN(ub[0],0.5); 
+            nlopt_optimize(opt, y, &minf); 
+            solver_data->cons = y[0];
+
+            // destroy optimizer
+            nlopt_destroy(opt);
+
+        } else {
+            // consume all resources in last period
+            solver_data->cons = resources(labor_w,labor_m,A,Kw,Km,par);
+            minf = - value_of_choice(Vw,Vm,solver_data->cons,labor_w,labor_m,power,love,A,Kw,Km,t,solver_data->Vw_next,solver_data->Vm_next,par);
+
         }
 
-        // consume all resources in last period
-        double cons = resources(labor_w,labor_m,A,Kw,Km,par);
-
-        Vw[0] = utils::util(cons,labor_w,woman,par) + love;
-        Vm[0] = utils::util(cons,labor_m,man,par) + love;
-
-        // return negative utility (with penalty)
-        double util = power*Vw[0] + (1.0-power)*Vm[0];
-
-        // logs::write("last_log.txt", 1, "\n cons %2.4f ", cons);
-        // logs::write("last_log.txt", 1, "labor_w %2.4f ", labor_w);
-        // logs::write("last_log.txt", 1, "labor_m %2.4f ", labor_m);
-        // logs::write("last_log.txt", 1, "util %2.4f ", util);
-        // logs::write("last_log.txt", 1, "penalty %2.4f ", penalty);
-        // logs::write("last_log.txt", 1, "penalty %2.8f \n", - util + penalty);
-
-
-        return - util + penalty;
+        // return objective function
+        return minf + penalty;
 
     }
-    
-    void solve_remain_last(int t, int iP, int iL,int iA, int iKw, int iKm,sol_struct* sol, par_struct* par){
+
+    void solve_remain(int t, int iP, int iL,int iA, int iKw, int iKm, double* Vw_next, double* Vm_next, sol_struct* sol, par_struct* par){
         
-        int idx = index::couple(t,iP,iL,iA,iKw,iKm,par); 
-        
+        int idx = index::couple(t,iP,iL,iA,iKw,iKm,par);
+
         double love = par->grid_love[iL];
         double A = par->grid_A[iA];
         double Kw = par->grid_K[iKw];
         double Km = par->grid_K[iKm];
 
         // objective function
-        int const dim = 2;
+        int const dim = 2; // consumption is done conditional on labor
         double lb[dim],ub[dim],x[dim];
         
         auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
@@ -131,34 +243,29 @@ namespace couple {
         solver_data->A = A;
         solver_data->Kw = Kw;
         solver_data->Km = Km;
+        solver_data->t = t;
+        solver_data->Vw_next = Vw_next;
+        solver_data->Vm_next = Vm_next;
         solver_data->sol = sol;
         solver_data->par = par;
-        solver_data->lower = lb; 
+        solver_data->lower = lb;
         solver_data->upper = ub;
 
         double Vw,Vm; // store indiviual values herein
         solver_data->Vw = &Vw; 
         solver_data->Vm = &Vm; 
-        
-        nlopt_set_min_objective(opt, objfunc_couple_last, solver_data);
-        nlopt_set_ftol_rel(opt,1.0e-5);
+        nlopt_set_min_objective(opt, objfunc_labor, solver_data);
+        nlopt_set_ftol_rel(opt,1.0e-7);
         nlopt_set_xtol_rel(opt,1.0e-5);
 
-        // optimize: initial values
+        // optimize
         x[0] = 0.5;
         x[1] = 0.5;
         int idx_last = -1;
         if(iKm>0){
-            idx_last = index::index6(t,iP,iL,iA,iKw,iKm-1,par->T,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K); 
-        } 
-        else if (iKw>0){
-            idx_last = index::index6(t,iP,iL,iA,iKw-1,iKm,par->T,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K); 
-        } else if (iA>0){
-            idx_last = index::index6(t,iP,iL,iA-1,iKw,iKm,par->T,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K); 
-        } else if (iL>0){
-            idx_last = index::index6(t,iP,iL-1,iA,iKw,iKm,par->T,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K); 
-        } else if (iP>0){
-            idx_last = index::index6(t,iP-1,iL,iA,iKw,iKm,par->T,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K); 
+            idx_last = index::couple(t,iP,iL,iA,iKw,iKm-1,par); 
+        } else if(iKw>0) {
+            idx_last = index::couple(t,iP,iL,iA,iKw-1,iKm,par); 
         }
         if(idx_last>-1){
             x[0] = sol->labor_w_remain_couple[idx_last];
@@ -170,179 +277,13 @@ namespace couple {
         // store results. 
         sol->labor_w_remain_couple[idx] = x[0];
         sol->labor_m_remain_couple[idx] = x[1];
-        sol->cons_w_remain_couple[idx] = resources(sol->labor_w_remain_couple[idx],sol->labor_m_remain_couple[idx],A,Kw,Km,par);
-        sol->cons_m_remain_couple[idx] = sol->cons_w_remain_couple[idx];
-
-        sol->Vw_remain_couple[idx] = Vw;
-        sol->Vm_remain_couple[idx] = Vm;
-    }
-
-    double value_of_choice(double* Vw,double* Vm,double cons,double labor_w,double labor_m,double power,double love,double A,double Kw,double Km,double* Vw_next,double* Vm_next,par_struct* par){
-        // current utility flow
-        Vw[0] = utils::util(cons,labor_w,woman,par) + love;
-        Vm[0] = utils::util(cons,labor_m,man,par) + love;
-
-        // add continuation value 
-        double A_next = resources(labor_w,labor_m,A,Kw,Km,par) - cons ;
-        double Kbar_w = utils::K_bar(Kw,labor_w,par);
-        double Kbar_m = utils::K_bar(Km,labor_m,par);
-
-        double EVw_plus = 0.0;
-        double EVm_plus = 0.0;
-        // [TODO: binary search only when needed and re-use index would speed this up since only output different!]
-        for (int iKw_next=0;iKw_next<par->num_shock_K;iKw_next++){
-            double Kw_next = Kbar_w*par->grid_shock_K[iKw_next];
-
-            for (int iKm_next=0;iKm_next<par->num_shock_K;iKm_next++){
-                double Km_next = Kbar_m*par->grid_shock_K[iKm_next];
-
-                for (int iL_next = 0; iL_next < par->num_shock_love; iL_next++) {
-                    double love_next = love + par->grid_shock_love[iL_next];
-
-                    double weight = par->grid_weight_love[iL_next] * par->grid_weight_K[iKw_next] * par->grid_weight_K[iKm_next];
-
-                    EVw_plus += weight * tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, Vw_next, love_next,A_next,Kw_next,Km_next);
-                    EVm_plus += weight * tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, Vm_next, love_next,A_next,Kw_next,Km_next);
-                }
-            }
-        }
-        Vw[0] += par->beta*EVw_plus;
-        Vm[0] += par->beta*EVm_plus;
-
-        // return
-        return power*Vw[0] + (1.0-power)*Vm[0];
-    }
-
-    double objfunc_couple(unsigned n, const double *x, double *grad, void *solver_data_in){
-        // unpack
-        solver_couple_struct *solver_data = (solver_couple_struct *) solver_data_in;
-
-        double labor_w = x[0];
-        double labor_m = x[1];
-        double cons = x[2];
-
-        int iP = solver_data->iP;
-        double love = solver_data->love;
-        double A = solver_data->A;
-        double Kw = solver_data->Kw;
-        double Km = solver_data->Km;
-
-        sol_struct *sol = solver_data->sol;
-        par_struct *par = solver_data->par;
-
-        double* lower = solver_data->lower;
-        double* upper = solver_data->upper;
-
-        double* Vw = solver_data->Vw;
-        double* Vm = solver_data->Vm;
-
-        double power = par->grid_power[iP];
-
-        // penalty and clip
-        double penalty = 0.0;
-        if (labor_w < lower[0]) {
-            penalty += 1000.0*(lower[0]-labor_w)*(lower[0]-labor_w);
-            labor_w = lower[0];
-        } else if (labor_w > upper[0]) {
-            penalty += 1000.0*(upper[0]-labor_w)*(upper[0]-labor_w);
-            labor_w = upper[0];
-        }
-        if (labor_m < lower[1]) {
-            penalty += 1000.0*(lower[1]-labor_m)*(lower[1]-labor_m);
-            labor_m = lower[1];
-        } else if (labor_m > upper[1]) {
-            penalty += 1000.0*(upper[1]-labor_m)*(upper[1]-labor_m);
-            labor_m = upper[1];
-        }
-
-        double saving = resources(labor_w,labor_m,A,Kw,Km,par) - cons;
-        if(saving<0.0){ // budget constraint: no borrowing
-            penalty += 1000.0*saving*saving;
-            cons -= saving; 
-        }
-        if (cons < lower[2]) {
-            penalty += 1000.0*(lower[2]-cons)*(lower[2]-cons);
-            cons = lower[2];
-        } else if (cons > upper[2]) {
-            penalty += 1000.0*(upper[2]-cons)*(upper[2]-cons);
-            cons = upper[2];
-        }
-
-        // return negative value of choice
-        return - value_of_choice(Vw,Vm,cons,labor_w,labor_m,power,love,A,Kw,Km,solver_data->Vw_next,solver_data->Vm_next,par) + penalty;
-
-    }
-
-    void solve_remain(int t, int iP, int iL,int iA, int iKw, int iKm, double* Vw_next, double* Vm_next, sol_struct* sol, par_struct* par){
-        
-        int idx = index::couple(t,iP,iL,iA,iKw,iKm,par);
-        int idx_last = index::couple(t,iP,iL,iA,iKw,iKm-1,par); 
-
-        double love = par->grid_love[iL];
-        double A = par->grid_A[iA];
-        double Kw = par->grid_K[iKw];
-        double Km = par->grid_K[iKm];
-
-        // objective function
-        int const dim = 3;
-        double lb[dim],ub[dim],x[dim];
-        
-        auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
-        double minf=0.0;
-
-        // bounds
-        lb[0] = 0.0;
-        ub[0] = 1.0;
-        lb[1] = 0.0;
-        ub[1] = 1.0;
-        lb[2] = 1.0e-6; // consumption
-        ub[2] = resources(ub[0],ub[1],A,Kw,Km,par); // resources if working full time 
-        nlopt_set_lower_bounds(opt, lb);
-        nlopt_set_upper_bounds(opt, ub);
-
-        solver_couple_struct* solver_data = new solver_couple_struct;
-        solver_data->iP = iP;
-        solver_data->love = love;
-        solver_data->A = A;
-        solver_data->Kw = Kw;
-        solver_data->Km = Km;
-        solver_data->Vw_next = Vw_next;
-        solver_data->Vm_next = Vm_next;
-        solver_data->sol = sol;
-        solver_data->par = par;
-        solver_data->lower = lb;
-        solver_data->upper = ub;
-
-        double Vw,Vm; // store indiviual values herein
-        solver_data->Vw = &Vw; 
-        solver_data->Vm = &Vm; 
-        nlopt_set_min_objective(opt, objfunc_couple, solver_data);
-        nlopt_set_ftol_rel(opt,1.0e-5);
-        nlopt_set_xtol_rel(opt,1.0e-5);
-
-        // optimize
-        x[0] = 0.5;
-        x[1] = 0.5;
-        x[2] = 0.5*ub[2];
-        if(iKm>0){
-            x[0] = sol->labor_w_remain_couple[idx_last];
-            x[1] = sol->labor_m_remain_couple[idx_last];
-            x[2] = sol->cons_w_remain_couple[idx_last];
-        }
-        nlopt_optimize(opt, x, &minf);
-        nlopt_destroy(opt);
-
-        // store results. 
-        sol->labor_w_remain_couple[idx] = x[0];
-        sol->labor_m_remain_couple[idx] = x[1];
-        sol->cons_w_remain_couple[idx] = x[2];
-        sol->cons_m_remain_couple[idx] = x[2];
+        sol->cons_w_remain_couple[idx] = solver_data->cons;
+        sol->cons_m_remain_couple[idx] = solver_data->cons;
 
         sol->Vw_remain_couple[idx] = Vw;
         sol->Vm_remain_couple[idx] = Vm;
         
     }
-
 
 
     void solve_couple(int t,sol_struct *sol,par_struct *par){
@@ -377,13 +318,9 @@ namespace couple {
                     for (int iA=0; iA<par->num_A; iA++){
                         for (int iKw=0; iKw<par->num_K; iKw++){
                             for (int iKm=0; iKm<par->num_K; iKm++){
-                                if(t==(par->T-1)){
-                                    solve_remain_last(t,iP,iL,iA,iKw,iKm,sol,par); 
 
-                                } else {
-                                    solve_remain(t,iP,iL,iA,iKw,iKm,Vw_next,Vm_next,sol,par); 
+                                solve_remain(t,iP,iL,iA,iKw,iKm,Vw_next,Vm_next,sol,par); 
 
-                                }
                             } // human capital, man
                         } // human capital, woman
                     } // wealth

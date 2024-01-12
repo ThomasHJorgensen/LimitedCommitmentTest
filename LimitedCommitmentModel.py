@@ -57,25 +57,25 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.T = 2
         
         # wealth
-        par.num_A = 30
+        par.num_A = 80
         par.max_A = 15.0
 
         # human capital
-        par.num_K = 10
+        par.num_K = 30
         par.max_K = 20.0
 
         par.sigma_K = 0.1
-        par.num_shock_K = 3
+        par.num_shock_K = 5
         
         # bargaining power
-        par.num_power = 11
+        par.num_power = 21
 
         # love/match quality
         par.num_love = 10
         par.max_love = 1.0
 
         par.sigma_love = 0.1
-        par.num_shock_love = 3
+        par.num_shock_love = 5 
 
         # simulation
         par.seed = 9210
