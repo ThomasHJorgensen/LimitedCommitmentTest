@@ -55,6 +55,9 @@ namespace index {
     int couple(int t,int iP,int iL,int iA,int iKw,int iKm,par_struct* par){
         return index6(t,iP,iL,iA,iKw,iKm,par->T,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K);
     }
+    int precomp(int iP,int iL,int iA,int iKw,int iKm,par_struct* par){
+        return index5(iP,iL,iA,iKw,iKm,par->num_power,par->num_love,par->num_A_pd,par->num_K_pd,par->num_K_pd);
+    }
 
     typedef struct{
             int t;

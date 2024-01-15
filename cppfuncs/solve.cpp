@@ -17,12 +17,16 @@ EXPORT void solve(sol_struct *sol, par_struct *par){
     for (int t = par->T-1; t >= 0; t--){
 
         single::solve_single(t,sol,par); 
-        // couple::solve_couple(t,sol,par);
+        
+        if(t<(par->T-1)){
+            couple::precompute_EV(t+1,sol,par);
+        }
+        couple::solve_couple(t,sol,par);
 
     }
 
-    couple::solve_couple(par->T-1,sol,par); // last period test
-    couple::precompute(par->T-1,sol,par);
+    // couple::solve_couple(par->T-1,sol,par); // last period test
+    // couple::precompute(par->T-1,sol,par);
 }
 
 

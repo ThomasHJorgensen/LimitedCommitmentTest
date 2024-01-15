@@ -2,7 +2,7 @@
 #define SINGLE
 #include "myheader.cpp"
 #endif
-
+// TODO: room for speed improvements but the couples problem is the bottleneck
 namespace single {
     typedef struct {
         
@@ -192,11 +192,6 @@ namespace single {
                     if(iK>0){
                         idx_last = index::single(t,iA,iK-1,par);
                     } 
-                    // else if (iA>0){
-                    //     idx_last = index::single(t,iA-1,iK,par);
-                    // } else {
-                    //     idx_last = index::single(t-1,iA,iK,par);
-                    // }
                     if(idx_last>-1){
                         x[0] = sol->labor_w_single[idx_last];
                     }
@@ -231,9 +226,9 @@ namespace single {
 
                     // optimize
                     x[0] = 0.5;
-                    // if(idx_last>-1){
-                    //     x[0] = sol->labor_m_single[idx_last];
-                    // }
+                    if(idx_last>-1){
+                        x[0] = sol->labor_m_single[idx_last];
+                    }
                     nlopt_optimize(opt, x, &minf); 
 
                     // store results

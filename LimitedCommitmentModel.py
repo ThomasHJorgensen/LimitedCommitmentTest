@@ -57,11 +57,11 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.T = 2
         
         # wealth
-        par.num_A = 80
+        par.num_A = 50
         par.max_A = 15.0
 
         # human capital
-        par.num_K = 30
+        par.num_K = 10
         par.max_K = 20.0
 
         par.sigma_K = 0.1
@@ -79,15 +79,14 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # simulation
         par.seed = 9210
-        par.simT = par.T
         par.simN = 50_000
 
         # cpp
         par.threads = 16
 
         # post-decision states
-        par.num_A_pd = par.num_A * 2
-        par.num_K_pd = par.num_K * 2
+        par.num_A_pd = 80
+        par.num_K_pd = 20
         
     def allocate(self):
         par = self.par
@@ -140,7 +139,7 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         
         # simulation
-        shape_sim = (par.simN,par.simT)
+        shape_sim = (par.simN,par.T)
         sim.labor_w = np.nan + np.ones(shape_sim)               
         sim.labor_m = np.nan + np.ones(shape_sim)
         sim.cons_w = np.nan + np.ones(shape_sim)

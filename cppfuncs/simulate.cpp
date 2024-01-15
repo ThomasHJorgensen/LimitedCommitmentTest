@@ -84,10 +84,10 @@ namespace sim {
         {
             #pragma omp for
             for (int i=0; i<par->simN; i++){
-                for (int t=0; t < par->simT; t++){
-                    int it = index::index2(i,t,par->simN,par->simT);
-                    int it_1 = index::index2(i,t-1,par->simN,par->simT);
-                    int it1 = index::index2(i,t+1,par->simN,par->simT);
+                for (int t=0; t < par->T; t++){
+                    int it = index::index2(i,t,par->simN,par->T);
+                    int it_1 = index::index2(i,t-1,par->simN,par->T);
+                    int it1 = index::index2(i,t+1,par->simN,par->T);
 
                     double A_lag = sim->init_A[i];
                     double Aw_lag = sim->init_Aw[i];
@@ -137,14 +137,16 @@ namespace sim {
                         // optimal labor supply and consumption [could be smarter about this interpolation]
                         sim->labor_w[it] = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->labor_w_remain_couple[idx_sol], sim->love[it],A_lag,sim->Kw[it],sim->Km[it]);
                         sim->labor_m[it] = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->labor_m_remain_couple[idx_sol], sim->love[it],A_lag,sim->Kw[it],sim->Km[it]);
+                        
+                        double resources = couple::resources(sim->labor_w[it],sim->labor_m[it],A_lag,sim->Kw[it],sim->Kw[it],par); 
                         double cons = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->cons_w_remain_couple[idx_sol], sim->love[it],A_lag,sim->Kw[it],sim->Kw[it]); // same for men and women in remain couple
+                        cons = MIN(cons,resources); // cannot borrow. This removes small numerical violations
                         sim->cons_w[it] = cons;
                         sim->cons_m[it] = cons;
 
                         // update end-of-period states
-                        double resources = couple::resources(sim->labor_w[it],sim->labor_m[it],A_lag,sim->Kw[it],sim->Kw[it],par); 
                         sim->A[it] = resources - cons;
-                        if(t<par->simT-1){
+                        if(t<par->T-1){
                             sim->love[it1] = sim->love[it] + par->sigma_love * sim->draw_love[it1];
                             sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],par) * sim->draw_Kw[it1];
                             sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],par) * sim->draw_Km[it1];
@@ -174,18 +176,23 @@ namespace sim {
 
                         // optimal consumption and labor supply [could be smarter about this interpolation]
                         sim->labor_w[it] = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,labor_single_w,Aw_lag,sim->Kw[it]);
-                        sim->cons_w[it] = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,cons_single_w,Aw_lag,sim->Kw[it]);
                         sim->labor_m[it] = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,labor_single_m,Am_lag,sim->Km[it]);
-                        sim->cons_m[it] = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,cons_single_m,Am_lag,sim->Km[it]);
-                        
-                        // update end-of-period states
+
                         double resources_w = single::resources_single(sim->labor_w[it],Aw_lag,sim->Kw[it],woman,par); 
                         double resources_m = single::resources_single(sim->labor_m[it],Am_lag,sim->Km[it],man,par); 
+
+                        sim->cons_w[it] = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,cons_single_w,Aw_lag,sim->Kw[it]);
+                        sim->cons_w[it] = MIN(sim->cons_w[it],resources_w); // cannot borrow. This removes small numerical violations
+
+                        sim->cons_m[it] = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,cons_single_m,Am_lag,sim->Km[it]);
+                        sim->cons_m[it] = MIN(sim->cons_m[it],resources_m); // cannot borrow. This removes small numerical violations
                         
+
+                        // update end-of-period states
                         sim->Aw[it] = resources_w - sim->cons_w[it];
                         sim->Am[it] = resources_m - sim->cons_m[it];
 
-                        if(t<par->simT-1){
+                        if(t<par->T-1){
                             sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],par) * sim->draw_Kw[it1];
                             sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],par) * sim->draw_Km[it1];
                         }

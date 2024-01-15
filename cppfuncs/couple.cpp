@@ -15,8 +15,8 @@ namespace couple {
         double Km;           
         double *Vw;    
         double *Vm;     
-        double *Vw_next;    
-        double *Vm_next;    
+        double *EVw_next;    
+        double *EVm_next;    
 
         int t;
 
@@ -44,7 +44,7 @@ namespace couple {
     }
 
     // pre-compute
-    double precompute(int t_next,sol_struct* sol,par_struct* par){
+    double precompute_EV(int t_next,sol_struct* sol,par_struct* par){
         // precompute expected continuation values for men and women
         // over power, love, Abar, Kwbar, Kmbar. 
         
@@ -102,7 +102,7 @@ namespace couple {
                             }
 
                             // store in solution
-                            int idx = index::index5(iP,iL,iA,iKw,iKm,par->num_power,par->num_love,par->num_A_pd,par->num_K_pd,par->num_K_pd);
+                            int idx = index::precomp(iP,iL,iA,iKw,iKm,par);
                             sol->EVw_pd[idx] = EVw_plus;
                             sol->EVm_pd[idx] = EVm_plus;
 
@@ -116,44 +116,25 @@ namespace couple {
     
     }
 
-    //////////////////
-    // VFI solution //
-    double value_of_choice(double* Vw,double* Vm,double cons,double labor_w,double labor_m,double power,double love,double A,double Kw,double Km, int t,double* Vw_next,double* Vm_next,par_struct* par){
+    double value_of_choice(double* Vw,double* Vm,double cons,double labor_w,double labor_m,double power,double love,double A,double Kw,double Km, int t,double* EVw_next,double* EVm_next,par_struct* par){
         // current utility flow
         Vw[0] = utils::util(cons,labor_w,woman,par) + love;
         Vm[0] = utils::util(cons,labor_m,man,par) + love;
 
         // add continuation value 
-        double EVw_plus = 0.0;
-        double EVm_plus = 0.0;
         if(t<par->T-1){
             double A_next = resources(labor_w,labor_m,A,Kw,Km,par) - cons ;
             double Kbar_w = utils::K_bar(Kw,labor_w,par);
             double Kbar_m = utils::K_bar(Km,labor_m,par);
 
-            // [TODO: binary search only when needed and re-use index would speed this up since only output different!]
-            for (int iKw_next=0;iKw_next<par->num_shock_K;iKw_next++){
-                double Kw_next = Kbar_w*par->grid_shock_K[iKw_next];
-
-                for (int iKm_next=0;iKm_next<par->num_shock_K;iKm_next++){
-                    double Km_next = Kbar_m*par->grid_shock_K[iKm_next];
-
-                    for (int iL_next = 0; iL_next < par->num_shock_love; iL_next++) {
-                        double love_next = love + par->grid_shock_love[iL_next];
-
-                        double weight = par->grid_weight_love[iL_next] * par->grid_weight_K[iKw_next] * par->grid_weight_K[iKm_next];
-
-                        EVw_plus += weight * tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, Vw_next, love_next,A_next,Kw_next,Km_next);
-                        EVm_plus += weight * tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, Vm_next, love_next,A_next,Kw_next,Km_next);
-                    }
-                }
-            }
+            // interpolate next-period expected value (pre-computed) wrt. Anext,Kwbar,Kmbar (love is on grid)
+            double EVw_plus,EVm_plus;
+            tools::interp_3d_2out(&EVw_plus,&EVm_plus, par->grid_A_pd,par->grid_K_pd,par->grid_K_pd, par->num_A_pd,par->num_K_pd,par->num_K_pd, EVw_next,EVm_next ,A_next,Kbar_w,Kbar_m);
 
             Vw[0] += par->beta*EVw_plus;
             Vm[0] += par->beta*EVm_plus;
 
         }
-
 
         // return
         return power*Vw[0] + (1.0-power)*Vm[0];
@@ -198,7 +179,7 @@ namespace couple {
         } 
 
         // return negative value of choice
-        return - value_of_choice(Vw,Vm,cons,labor_w,labor_m,power,love,A,Kw,Km,t,solver_data->Vw_next,solver_data->Vm_next,par) + penalty;
+        return - value_of_choice(Vw,Vm,cons,labor_w,labor_m,power,love,A,Kw,Km,t,solver_data->EVw_next,solver_data->EVm_next,par) + penalty;
 
     }
 
@@ -267,7 +248,7 @@ namespace couple {
             nlopt_set_min_objective(opt, objfunc_cons, solver_data); 
 
             // optimize
-            y[0] = MIN(ub[0],0.5); 
+            y[0] = MIN(ub[0],solver_data->cons); // use last found consumption as starting guess
             nlopt_optimize(opt, y, &minf); 
             solver_data->cons = y[0];
 
@@ -277,7 +258,7 @@ namespace couple {
         } else {
             // consume all resources in last period
             solver_data->cons = resources(labor_w,labor_m,A,Kw,Km,par);
-            minf = - value_of_choice(Vw,Vm,solver_data->cons,labor_w,labor_m,power,love,A,Kw,Km,t,solver_data->Vw_next,solver_data->Vm_next,par);
+            minf = - value_of_choice(Vw,Vm,solver_data->cons,labor_w,labor_m,power,love,A,Kw,Km,t,solver_data->EVw_next,solver_data->EVm_next,par);
 
         }
 
@@ -286,7 +267,7 @@ namespace couple {
 
     }
 
-    void solve_remain(int t, int iP, int iL,int iA, int iKw, int iKm, double* Vw_next, double* Vm_next, sol_struct* sol, par_struct* par){
+    void solve_remain(int t, int iP, int iL,int iA, int iKw, int iKm, double* EVw_next, double* EVm_next, sol_struct* sol, par_struct* par){
         
         int idx = index::couple(t,iP,iL,iA,iKw,iKm,par);
 
@@ -317,19 +298,22 @@ namespace couple {
         solver_data->Kw = Kw;
         solver_data->Km = Km;
         solver_data->t = t;
-        solver_data->Vw_next = Vw_next;
-        solver_data->Vm_next = Vm_next;
+        solver_data->EVw_next = EVw_next;
+        solver_data->EVm_next = EVm_next;
         solver_data->sol = sol;
         solver_data->par = par;
         solver_data->lower = lb;
         solver_data->upper = ub;
 
-        double Vw,Vm; // store indiviual values herein
+        solver_data->cons = 0.5; // initial guess on consumption (used in inner optimization)
+
+        double Vw,Vm; // store individual values herein
         solver_data->Vw = &Vw; 
         solver_data->Vm = &Vm; 
         nlopt_set_min_objective(opt, objfunc_labor, solver_data);
         nlopt_set_ftol_rel(opt,1.0e-7);
         nlopt_set_xtol_rel(opt,1.0e-5);
+        nlopt_set_maxeval(opt,250); // ensures finite termination
 
         // optimize
         x[0] = 0.5;
@@ -377,22 +361,21 @@ namespace couple {
             // loop through states (par.T,par.num_power,par.num_love,par.num_A,par.num_K,par.num_K)
             #pragma omp for
             for (int iP=0; iP<par->num_power; iP++){
-
-                // Get next period continuation values
-                double *Vw_next = nullptr;  
-                double *Vm_next = nullptr;
-                if (t<(par->T-1)){
-                    int idx_next = index::couple(t+1,iP,0,0,0,0,par);
-                    Vw_next = &sol->Vw_couple[idx_next];  
-                    Vm_next = &sol->Vm_couple[idx_next];
-                }
-                
                 for (int iL=0; iL<par->num_love; iL++){
+                    // Get next period continuation values
+                    double *EVw_next = nullptr;  
+                    double *EVm_next = nullptr;
+                    if (t<(par->T-1)){
+                        int idx_next = index::precomp(iP,iL,0,0,0,par); // interpolate next-period expected value (pre-computed) wrt. Anext,Kwbar,Kmbar (love is on grid)
+                        EVw_next = &sol->EVw_pd[idx_next];  
+                        EVm_next = &sol->EVm_pd[idx_next];
+                    }
+                    
                     for (int iA=0; iA<par->num_A; iA++){
                         for (int iKw=0; iKw<par->num_K; iKw++){
                             for (int iKm=0; iKm<par->num_K; iKm++){
 
-                                solve_remain(t,iP,iL,iA,iKw,iKm,Vw_next,Vm_next,sol,par); 
+                                solve_remain(t,iP,iL,iA,iKw,iKm,EVw_next,EVm_next,sol,par); 
 
                             } // human capital, man
                         } // human capital, woman
@@ -407,8 +390,8 @@ namespace couple {
                     for (int iKw=0; iKw<par->num_K; iKw++){
                         for (int iKm=0; iKm<par->num_K; iKm++){
                             // indices
-                            int idx_single_w = index::single(t,iA,iKw,par);//index::index3(t,iA,iKw,par->T,par->num_A,par->num_K);
-                            int idx_single_m = index::single(t,iA,iKm,par);//index::index3(t,iA,iKm,par->T,par->num_A,par->num_K);
+                            int idx_single_w = index::single(t,iA,iKw,par);
+                            int idx_single_m = index::single(t,iA,iKm,par);
                             
                             idx_couple->t = t;
                             idx_couple->iL = iL;
@@ -419,7 +402,7 @@ namespace couple {
 
                             // Calculate marital surplus across power
                             for (int iP=0; iP<par->num_power; iP++){
-                                int idx_tmp = index::couple(t,iP,iL,iA,iKw,iKm,par);//index::index6(t,iP,iL,iA,iKw,iKm,par->T,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K);
+                                int idx_tmp = index::couple(t,iP,iL,iA,iKw,iKm,par);
                                 Sw[iP] = calc_marital_surplus(sol->Vw_remain_couple[idx_tmp],sol->Vw_single[idx_single_w],par);
                                 Sm[iP] = calc_marital_surplus(sol->Vm_remain_couple[idx_tmp],sol->Vm_single[idx_single_m],par);
                             }
