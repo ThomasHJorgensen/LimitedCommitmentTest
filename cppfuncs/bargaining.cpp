@@ -380,7 +380,7 @@ namespace bargaining {
 
 
     void nash(int* power_idx, double* power, double* Sw, double* Sm, index::index_couple_struct* idx_couple, double** list_start_as_couple, double** list_remain_couple, double* list_trans_to_single, int num, par_struct* par){
-        // find (discrete) max
+        // find (discrete) max TODO: think about continuous max (interpolation)
         double obj_max = -1.0e10;
         int iP_max = -1;
         for (int iP=0; iP<par->num_power; iP++){

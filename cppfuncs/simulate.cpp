@@ -7,21 +7,28 @@
 
 namespace sim {
 
-    int update_power_index(int t, int power_idx_lag, double love,double A_lag,double Aw_lag,double Am_lag,double Kw, double Km,sim_struct* sim, sol_struct* sol, par_struct* par){
+    int update_power_index(int t, int power_idx_lag, double love,double A_lag,double Aw_lag,double Am_lag,double Kw, double Km,sim_struct* sim, sol_struct* sol, par_struct* par,int bargaining){
         
         
-        if(par->bargaining==0){ // no bargaining: full commitment
-            return power_idx_lag;
-        } 
-
-
         // value of transitioning into singlehood
         int idx_single = index::single(t,0,0,par);
         double Vw_single = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,&sol->Vw_trans_single[idx_single],Aw_lag,Kw);
         double Vm_single = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,&sol->Vm_trans_single[idx_single],Am_lag,Km);
 
+        // value of remaining a couple with current power. [could be smarter about this interpolation]
+        int idx_sol = index::couple(t,power_idx_lag,0,0,0,0,par); 
+        double Vw_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_remain_couple[idx_sol], love,A_lag,Kw,Km);
+        double Vm_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vm_remain_couple[idx_sol], love,A_lag,Kw,Km);
+
         
-        if(par->bargaining==2){ // NASH
+        if(bargaining==0){ // no bargaining: full commitment
+            if((Vw_couple<Vw_single) | (Vm_couple<Vm_single)){
+                return -1;
+            } else {
+                return power_idx_lag;
+            }
+
+        } else if(bargaining==2){ // NASH
 
             // find (discrete) max
             double obj_max = -1.0e10;
@@ -49,20 +56,9 @@ namespace sim {
             }
 
             // return relevant index
-            if (iP_max>=0){
-                return iP_max;
-            } else {
-                return power_idx_lag;
-            }
-
+            return iP_max;
 
         } else { // limited commitment
-
-            // value of remaining a couple with current power. [could be smarter about this interpolation]
-            int idx_sol = index::couple(t,power_idx_lag,0,0,0,0,par); 
-            double Vw_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_remain_couple[idx_sol], love,A_lag,Kw,Km);
-            double Vm_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vm_remain_couple[idx_sol], love,A_lag,Kw,Km);
-
 
             // check participation constraints
             int power_idx = -1; // initialize as divorce
@@ -73,10 +69,6 @@ namespace sim {
 
                 if ((Vm_couple>=Vm_single)){ // woman wants to leave
 
-                    // for (int iP=power_idx_lag+1; iP<(par->num_power-power_idx_lag); iP++){ // increase power of women I think this loop is wrong in the guide!! should go all the way to num_power
-                        // int idx = index::index4(t,iP,0,0,par->T,par->num_power,par->num_love,par->num_A); 
-                        // tools::interp_2d_2out(par->grid_love,par->grid_A,par->num_love,par->num_A,&sol->Vw_remain_couple[idx],&sol->Vm_remain_couple[idx],love,A_lag, &Vw_couple, &Vm_couple);
-                        
                     for (int iP=power_idx_lag+1; iP<par->num_power; iP++){ 
                         int idx = index::couple(t,iP,0,0,0,0,par);  // could agin be smarter with the interpolation
                         Vw_couple = tools::interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_remain_couple[idx], love,A_lag,Kw,Km);
@@ -142,6 +134,7 @@ namespace sim {
                     double Am_lag = sim->init_Am[i];
                     bool couple_lag = sim->init_couple[i];
                     int power_idx_lag = sim->init_power_idx[i];
+                    int bargaining = par->bargaining;
 
                     // state variables
                     if (t==0){
@@ -151,12 +144,16 @@ namespace sim {
                         sim->Kw[it] = sim->init_Kw[i];
                         sim->Km[it] = sim->init_Km[i];
 
+                        bargaining = 2; // NASH in initial period
+
                     } else {
                         A_lag = sim->A[it_1];
                         Aw_lag = sim->Aw[it_1];
                         Am_lag = sim->Am[it_1];
                         couple_lag = sim->couple[it_1];
                         power_idx_lag = sim->power_idx[it_1];
+
+                        bargaining = par->bargaining; // whatever specified in the remaining periods
                         
                     } 
 
@@ -165,7 +162,7 @@ namespace sim {
                     int power_idx;
                     if (couple_lag) {
 
-                        power_idx = update_power_index(t,power_idx_lag,sim->love[it],A_lag,Aw_lag,Am_lag,sim->Kw[it],sim->Km[it],sim,sol,par);
+                        power_idx = update_power_index(t,power_idx_lag,sim->love[it],A_lag,Aw_lag,Am_lag,sim->Kw[it],sim->Km[it],sim,sol,par,bargaining);
 
                         if (power_idx < 0) { // divorce is coded as -1
                             sim->couple[it] = false;
