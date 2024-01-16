@@ -378,4 +378,53 @@ namespace bargaining {
         } //case 1e
     } //end of check_participation_constraints
 
+
+    void nash(int* power_idx, double* power, double* Sw, double* Sm, index::index_couple_struct* idx_couple, double** list_start_as_couple, double** list_remain_couple, double* list_trans_to_single, int num, par_struct* par){
+        // find (discrete) max
+        double obj_max = -1.0e10;
+        int iP_max = -1;
+        for (int iP=0; iP<par->num_power; iP++){
+
+            if((Sw[iP]>0.0) & (Sm[iP]>0.0)){
+                
+                double obj_now = sqrt(Sw[iP]) * sqrt(Sm[iP]);
+                
+                if(obj_now>obj_max){
+                    obj_max = obj_now;
+                    iP_max = iP;
+                }
+            }
+        }
+
+        // update solution
+        if(iP_max>-1){
+            int idx_max = idx_couple->idx(iP_max);
+
+            for (int iP=0; iP<par->num_power; iP++){
+                int idx = idx_couple->idx(iP);
+                for (int i=0;i<num;i++){
+                    list_start_as_couple[i][idx] = list_remain_couple[i][idx_max];
+                }
+
+                power_idx[idx] = iP_max;
+                power[idx] = par->grid_power[iP_max];
+            }
+
+        } else {
+
+            // divorce
+            for (int iP=0; iP<par->num_power; iP++){
+                int idx = idx_couple->idx(iP);
+                for (int i=0;i<num;i++){
+                    list_start_as_couple[i][idx] = list_trans_to_single[i];
+                }
+
+                power_idx[idx] = -1;
+                power[idx] = -1.0;
+
+            }
+        }
+
+    } // NASH
+
 } // namespace bargaining
