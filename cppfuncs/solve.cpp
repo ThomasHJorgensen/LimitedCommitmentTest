@@ -24,9 +24,6 @@ EXPORT void solve(sol_struct *sol, par_struct *par){
         couple::solve_couple(t,sol,par);
 
     }
-
-    // couple::solve_couple(par->T-1,sol,par); // last period test
-    // couple::precompute(par->T-1,sol,par);
 }
 
 

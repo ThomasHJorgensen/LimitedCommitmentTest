@@ -2,7 +2,7 @@
 // functions for solving model for singles.
 #ifndef MAIN
 #define SIMULATE
-#include "myheader.cpp"
+#include "myheader.h"
 #endif
 
 namespace sim {
@@ -147,7 +147,7 @@ namespace sim {
                         // update end-of-period states
                         sim->A[it] = resources - cons;
                         if(t<par->T-1){
-                            sim->love[it1] = sim->love[it] + par->sigma_love * sim->draw_love[it1];
+                            sim->love[it1] = sim->love[it] + sim->draw_love[it1];
                             sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],par) * sim->draw_Kw[it1];
                             sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],par) * sim->draw_Km[it1];
                         }

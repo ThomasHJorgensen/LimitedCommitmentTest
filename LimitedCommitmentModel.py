@@ -157,7 +157,7 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # shocks
         np.random.seed(par.seed)
-        sim.draw_love = np.random.normal(size=shape_sim)
+        sim.draw_love = par.sigma_love * np.random.normal(size=shape_sim)
         sim.draw_Kw = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
         sim.draw_Km = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
 
@@ -221,7 +221,8 @@ class LimitedCommitmentModelClass(EconModelClass):
         par = self.par 
 
         # setup grids
-        self.setup_grids()
+        # self.setup_grids() #allocate? would be a bit slower but more safe
+        self.allocate()
 
         self.cpp.solve(sol,par)
 

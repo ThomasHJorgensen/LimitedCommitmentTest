@@ -1,6 +1,6 @@
 #ifndef MAIN
 #define SINGLE
-#include "myheader.cpp"
+#include "myheader.h"
 #endif
 // TODO: room for speed improvements but the couples problem is the bottleneck
 namespace single {

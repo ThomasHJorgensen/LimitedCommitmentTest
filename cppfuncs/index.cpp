@@ -1,7 +1,7 @@
 // functions for calculating linear indices.
 #ifndef MAIN
 #define INDEX
-#include "myheader.cpp"
+#include "myheader.h"
 #endif
 
 namespace index {
