@@ -103,8 +103,8 @@ namespace couple {
 
                             // store in solution
                             int idx = index::precomp(iP,iL,iA,iKw,iKm,par);
-                            sol->EVw_pd[idx] = EVw_plus;
-                            sol->EVm_pd[idx] = EVm_plus;
+                            sol->EVw_pd[idx] = par->beta*EVw_plus;
+                            sol->EVm_pd[idx] = par->beta*EVm_plus;
 
                         } // Kmbar
                     } // Kwbar
@@ -131,8 +131,8 @@ namespace couple {
             double EVw_plus,EVm_plus;
             tools::interp_3d_2out(&EVw_plus,&EVm_plus, par->grid_A_pd,par->grid_K_pd,par->grid_K_pd, par->num_A_pd,par->num_K_pd,par->num_K_pd, EVw_next,EVm_next ,A_next,Kbar_w,Kbar_m);
 
-            Vw[0] += par->beta*EVw_plus;
-            Vm[0] += par->beta*EVm_plus;
+            Vw[0] += EVw_plus;
+            Vm[0] += EVm_plus;
 
         }
 
