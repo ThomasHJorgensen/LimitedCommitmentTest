@@ -226,8 +226,8 @@ namespace bargaining {
         // Nash objective function
         double obj = sqrt(Sw_interp) * sqrt(Sm_interp);
 
-        // return negative value of choice
-        return obj + penalty;
+        // return negative for minimization
+        return - obj + penalty;
 
     }
 
@@ -250,49 +250,56 @@ namespace bargaining {
 
         // update solution
         if(iP_max>-1){
-            // double minf=0.0;
-            // int const dim = 1;
-            // double lb[dim],ub[dim],y[dim];
-            
-            // auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
+            bool do_cont = true;
 
-            // // bounds
-            // lb[0] = 0.0;
-            // ub[0] = 1.0;
-            // nlopt_set_lower_bounds(opt, lb);
-            // nlopt_set_upper_bounds(opt, ub);
+            if(do_cont){
+                // continuous optimization
+                double minf=0.0;
+                int const dim = 1;
+                double lb[dim],ub[dim],y[dim];
+                
+                auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
 
-            // nlopt_set_ftol_rel(opt,1.0e-5);
-            // nlopt_set_xtol_rel(opt,1.0e-5);
+                // bounds
+                lb[0] = 0.0;
+                ub[0] = 1.0;
+                nlopt_set_lower_bounds(opt, lb);
+                nlopt_set_upper_bounds(opt, ub);
 
-            // solver_struct_nash* solver_data = new solver_struct_nash;
-            // solver_data->par = par;
-            // solver_data->Sw = Sw;
-            // solver_data->Sm = Sm;
-            // nlopt_set_min_objective(opt, obj_nash, solver_data); 
+                nlopt_set_ftol_rel(opt,1.0e-5);
+                nlopt_set_xtol_rel(opt,1.0e-5);
 
-            // // optimize
-            // y[0] = par->grid_power[iP_max];
-            // nlopt_optimize(opt, y, &minf); 
+                solver_struct_nash* solver_data = new solver_struct_nash;
+                solver_data->par = par;
+                solver_data->Sw = Sw;
+                solver_data->Sm = Sm;
+                nlopt_set_min_objective(opt, obj_nash, solver_data); 
 
-            // // destroy optimizer
-            // nlopt_destroy(opt);
+                // optimize
+                y[0] = par->grid_power[iP_max];
+                nlopt_optimize(opt, y, &minf); 
 
-            // for (int iP=0; iP<par->num_power; iP++){
-            //     int idx = idx_couple->idx(iP);
-            //     power[idx] = y[0];
-            //     power_idx[idx] = iP_max; // close to the optimal
-            // }
+                // destroy optimizer
+                nlopt_destroy(opt);
 
-            int idx_max = idx_couple->idx(iP_max);
-            for (int iP=0; iP<par->num_power; iP++){
-                int idx = idx_couple->idx(iP);
-                for (int i=0;i<num;i++){
-                    list_start_as_couple[i][idx] = list_remain_couple[i][idx_max];
+                for (int iP=0; iP<par->num_power; iP++){
+                    int idx = idx_couple->idx(iP);
+                    power[idx] = y[0];
+                    power_idx[idx] = iP_max; // close to the optimal
                 }
 
-                power_idx[idx] = iP_max;
-                power[idx] = par->grid_power[iP_max];
+            } else {
+                // discrete optimization
+                int idx_max = idx_couple->idx(iP_max);
+                for (int iP=0; iP<par->num_power; iP++){
+                    int idx = idx_couple->idx(iP);
+                    for (int i=0;i<num;i++){
+                        list_start_as_couple[i][idx] = list_remain_couple[i][idx_max];
+                    }
+
+                    power_idx[idx] = iP_max;
+                    power[idx] = par->grid_power[iP_max];
+                }
             }
 
         } else {
