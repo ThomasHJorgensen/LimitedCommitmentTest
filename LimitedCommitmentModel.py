@@ -81,6 +81,9 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.seed = 9210
         par.simN = 50_000
 
+        # bargaining model
+        par.bargaining = 1 # 0: no bargaining, full commitment, 1: limited commitment, 2: no commitment, 'Nash' bargaining
+
         # cpp
         par.threads = 16
 

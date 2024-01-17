@@ -65,7 +65,7 @@ namespace bargaining {
     } // end of update_to_indifference
 
 
-    void check_participation_constraints(int* power_idx, double* power, double* Sw, double* Sm, index::index_couple_struct* idx_couple, double** list_start_as_couple, double** list_remain_couple, double* list_trans_to_single, int num, par_struct* par){
+    void limited_commitment(int* power_idx, double* power, double* Sw, double* Sm, index::index_couple_struct* idx_couple, double** list_start_as_couple, double** list_remain_couple, double* list_trans_to_single, int num, par_struct* par){
 
         // step 0: identify key indicators for each spouse
         // 0a: min and max surplus for each spouse
@@ -185,197 +185,157 @@ namespace bargaining {
         } //case 1e
     } //end of check_participation_constraints
 
+    typedef struct {  
+        par_struct* par;   
+        double* Sw;
+        double* Sm;          
+    } solver_struct_nash;
 
-    void check_participation_constraints_verbose(int* power_idx, double* power, double* Sw, double* Sm, index::index_couple_struct* idx_couple, double** list_start_as_couple, double** list_remain_couple, double* list_trans_to_single, int num, par_struct* par, bool do_print=false){
+    double obj_nash(unsigned n, const double *x, double *grad, void *solver_data_in){
+        // unpack
+        double power = x[0];
 
-        // step 0: identify key indicators for each spouse
-        // 0a: min and max surplus for each spouse
-        double min_w = Sw[0];
-        double max_w = Sw[par->num_power-1];
-        double min_m = Sm[par->num_power-1];
-        double max_m = Sm[0];
+        solver_struct_nash *solver_data = (solver_struct_nash *) solver_data_in;
+        double* Sw = solver_data->Sw;
+        double* Sm = solver_data->Sm;
+        par_struct* par = solver_data->par;
 
-        if (do_print) {
-            logs::write("barg_log.txt", 1, "\n\nInitial checks");
-            logs::write("barg_log.txt", 1, "\n   - min surplus for wife: %f", min_w);
-            logs::write("barg_log.txt", 1, "\n   - max surplus for wife: %f", max_w);
-            logs::write("barg_log.txt", 1, "\n   - min surplus for husband: %f", min_m);
-            logs::write("barg_log.txt", 1, "\n   - max surplus for husband: %f", max_m);
+        // penalty and clip
+        double penalty = 0.0;
+        if(power<0.0){ 
+            penalty += 1000.0*power*power;
+            power = 0.0; 
+        } else if (power>1.0){ 
+            penalty += 1000.0*(power-1.0)*(power-1.0);
+            power = 1.0;
         }
 
-        // 0b: check if wife and husband have indifference points
-        bool cross_w = (min_w < 0.0) && (max_w > 0.0);
-        bool cross_m = (min_m < 0.0) && (max_m > 0.0);
+        // interpolate surplus
+        int j = tools::binary_search(0, par->num_power, par->grid_power, power);
+        double Sw_interp = tools::interp_1d_index(par->grid_power, par->num_power, Sw, power, j);
+        double Sm_interp = tools::interp_1d_index(par->grid_power, par->num_power, Sm, power, j);
 
-        // 0b: check if wife and husband are always happy
-        bool always_happy_w = (min_w > 0.0);
-        bool always_happy_m = (min_m > 0.0);
+        if(Sw_interp<0.0){ 
+            penalty += 1000.0*Sw_interp*Sw_interp;
+            Sw_interp = 0.0; 
+        } else if (Sm_interp<0.0){ 
+            penalty += 1000.0*Sm_interp*Sm_interp;
+            Sm_interp = 0.0;
+        }
 
-        // 0c: check if wife and husband are never happy
-        bool never_happy_w = (max_w < 0.0);
-        bool never_happy_m = (max_m < 0.0);
+        // Nash objective function
+        double obj = sqrt(Sw_interp) * sqrt(Sm_interp);
 
-        // step 1: check endpoints
-        // 1a. check if all values are consistent with marriage
-        if (always_happy_w && always_happy_m){
-            if (do_print) {
-                logs::write("barg_log.txt", 1, "\n\nCase 1a: all values are consistent with marriage");
-                logs::write("barg_log.txt", 1, "\n   - remain married, no change in power");
+        // return negative value of choice
+        return obj + penalty;
+
+    }
+
+    void nash(int* power_idx, double* power, double* Sw, double* Sm, index::index_couple_struct* idx_couple, double** list_start_as_couple, double** list_remain_couple, double* list_trans_to_single, int num, par_struct* par){
+        // find (discrete) max TODO: think about continuous max (interpolation)
+        double obj_max = -1.0e10;
+        int iP_max = -1;
+        for (int iP=0; iP<par->num_power; iP++){
+
+            if((Sw[iP]>0.0) & (Sm[iP]>0.0)){
+                
+                double obj_now = sqrt(Sw[iP]) * sqrt(Sm[iP]);
+                
+                if(obj_now>obj_max){
+                    obj_max = obj_now;
+                    iP_max = iP;
+                }
             }
-            for(int iP=0; iP<par->num_power; iP++){
-                remain(iP, power_idx, power, idx_couple, list_start_as_couple, list_remain_couple, num, par);
-            }
-        } //case 1a
+        }
 
-        // 1b. check if all values are consistent with divorce
-        else if (never_happy_w || never_happy_m){
-            if (do_print) {
-                logs::write("barg_log.txt", 1, "\nCase 1b: all values are consistent with divorce");
-                logs::write("barg_log.txt", 1, "\n   - divorce");
-            }
+        // update solution
+        if(iP_max>-1){
+            // double minf=0.0;
+            // int const dim = 1;
+            // double lb[dim],ub[dim],y[dim];
+            
+            // auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
 
+            // // bounds
+            // lb[0] = 0.0;
+            // ub[0] = 1.0;
+            // nlopt_set_lower_bounds(opt, lb);
+            // nlopt_set_upper_bounds(opt, ub);
+
+            // nlopt_set_ftol_rel(opt,1.0e-5);
+            // nlopt_set_xtol_rel(opt,1.0e-5);
+
+            // solver_struct_nash* solver_data = new solver_struct_nash;
+            // solver_data->par = par;
+            // solver_data->Sw = Sw;
+            // solver_data->Sm = Sm;
+            // nlopt_set_min_objective(opt, obj_nash, solver_data); 
+
+            // // optimize
+            // y[0] = par->grid_power[iP_max];
+            // nlopt_optimize(opt, y, &minf); 
+
+            // // destroy optimizer
+            // nlopt_destroy(opt);
+
+            // for (int iP=0; iP<par->num_power; iP++){
+            //     int idx = idx_couple->idx(iP);
+            //     power[idx] = y[0];
+            //     power_idx[idx] = iP_max; // close to the optimal
+            // }
+
+            int idx_max = idx_couple->idx(iP_max);
             for (int iP=0; iP<par->num_power; iP++){
-                divorce(iP, power_idx, power, idx_couple, list_start_as_couple, list_trans_to_single, num, par);
-            }
-        } //case 1b
+                int idx = idx_couple->idx(iP);
+                for (int i=0;i<num;i++){
+                    list_start_as_couple[i][idx] = list_remain_couple[i][idx_max];
+                }
 
-        // 1c. check if husband is always happy, wife has indifference point
-        else if (cross_w && always_happy_m){
-            // find wife's indifference point
-            int left_w = find_left(Sw, par->num_power);
-            int Low_w = left_w+1;
-            double power_at_zero_w = tools::interp_1d_index(Sw, par->num_power, par->grid_power, 0.0, left_w);
-
-            if (do_print) {
-                logs::write("barg_log.txt", 1, "\nCase 1c: husband is always happy, wife has indifference point");
-                logs::write("barg_log.txt", 1, "\n   - Wife's indifference point at index %d", Low_w);
-                logs::write("barg_log.txt", 1, "\n   - Wife's power at indifference point: %f", power_at_zero_w);
+                power_idx[idx] = iP_max;
+                power[idx] = par->grid_power[iP_max];
             }
 
-            // update case 1c
+        } else {
+
+            // divorce
             for (int iP=0; iP<par->num_power; iP++){
-                if (iP == 0){
-                    update_to_indifference(iP, left_w, Low_w, power_at_zero_w, power_idx, power, idx_couple, list_start_as_couple, list_remain_couple, num, par, -1);
-                    if (do_print) {
-                        logs::write("barg_log.txt", 1, "\n       - updating index %d to wife's indifference point %d", iP, Low_w);
-                    }
+                int idx = idx_couple->idx(iP);
+                for (int i=0;i<num;i++){
+                    list_start_as_couple[i][idx] = list_trans_to_single[i];
                 }
-                else if (iP < Low_w){
-                    update_to_indifference(iP, left_w, Low_w, power_at_zero_w, power_idx, power, idx_couple, list_start_as_couple, list_remain_couple, num, par, 0);
-                    if (do_print) {
-                        logs::write("barg_log.txt", 1, "\n       - updating index %d to wife's indifference point %d", iP, Low_w);
-                    }
-                }
-                else{
-                    remain(iP, power_idx, power, idx_couple, list_start_as_couple, list_remain_couple, num, par);
-                    if (do_print) {
-                        logs::write("barg_log.txt", 1, "\n       - index %d remains unchanged", iP);
-                    }
-                } //if
-            } //for
-        } //case 1c
 
-        // 1d: check if wife is always happy, husband has indifference point
-        else if (cross_m && always_happy_w){
-            //find husband's indifference point
-            int left_m = find_left(Sm, par->num_power);
-            int Low_m = left_m;
-            double power_at_zero_m = tools::interp_1d_index(Sm, par->num_power, par->grid_power, 0.0, left_m);
+                power_idx[idx] = -1;
+                power[idx] = -1.0;
 
-            if (do_print) {
-                logs::write("barg_log.txt", 1, "\nCase 1d: wife is always happy, husband has indifference point");
-                logs::write("barg_log.txt", 1, "\n   - Husband's indifference point at index %d", Low_m);
-                logs::write("barg_log.txt", 1, "\n   - Husband's power at indifference point: %f", power_at_zero_m);
             }
+        }
 
-            // update case 1d
-            for (int iP=0; iP<par->num_power; iP++){
-                if (iP<=Low_m){
-                    remain(iP, power_idx, power, idx_couple, list_start_as_couple, list_remain_couple, num, par);
-                    if (do_print) {
-                        logs::write("barg_log.txt", 1, "\n       - index %d remains unchanged", iP);
-                    }
+    } // NASH
+
+    void full_commitment(int* power_idx, double* power, double* Sw, double* Sm, index::index_couple_struct* idx_couple, double** list_start_as_couple, double** list_remain_couple, double* list_trans_to_single, int num, par_struct* par){
+        
+        for (int iP=0; iP<par->num_power; iP++){
+            int idx = idx_couple->idx(iP);
+
+            if((Sw[iP]<0.0)|(Sm[iP]<0.0)){
+                for(int i=0;i<num;i++){
+                    list_start_as_couple[i][idx] = list_trans_to_single[i];
                 }
-                else if (iP==Low_m+1){
-                    update_to_indifference(iP, left_m, Low_m, power_at_zero_m, power_idx, power, idx_couple, list_start_as_couple, list_remain_couple, num, par, -1);
-                    if (do_print) {
-                        logs::write("barg_log.txt", 1, "\n       - updating index %d to husband's indifference point %d", iP, Low_m);
-                    }
+                power_idx[idx] = -1;
+                power[idx] = -1.0;
+
+            } else {
+                
+                for(int i=0;i<num;i++){
+                    list_start_as_couple[i][idx] = list_remain_couple[i][idx];
                 }
-                else{
-                    update_to_indifference(iP, left_m, Low_m, power_at_zero_m, power_idx, power, idx_couple, list_start_as_couple, list_remain_couple, num, par, Low_m+1);
-                    if (do_print) {
-                        logs::write("barg_log.txt", 1, "\n       - updating index %d to husband's indifference point %d", iP, Low_m);
-                    }
-                } //if
-            } //for
-        } //case 1d
 
-        // 1e: Both have indifference points
-        else {
-            //find indifference points
-            int left_w = find_left(Sw, par->num_power);
-            int Low_w = left_w+1;
-            double power_at_zero_w = tools::interp_1d_index(Sw, par->num_power, par->grid_power, 0.0, left_w);
+                power_idx[idx] = iP;
+                power[idx] = par->grid_power[iP];
 
-            int left_m = find_left(Sm, par->num_power);
-            int Low_m = left_m;         
-            double power_at_zero_m = tools::interp_1d_index(Sm, par->num_power, par->grid_power, 0.0, left_m);
-
-            if (do_print) {
-                logs::write("barg_log.txt", 1, "\nCase 1e: Both have indifference points");
-                logs::write("barg_log.txt", 1, "\n   - Wife's indifference point at index %d", Low_w);
-                logs::write("barg_log.txt", 1, "\n   - Wife's power at indifference point: %f", power_at_zero_w);
-                logs::write("barg_log.txt", 1, "\n   - Husband's indifference point at index %d", Low_m);
-                logs::write("barg_log.txt", 1, "\n   - Husband's power at indifference point: %f", power_at_zero_m);
             }
+        }
 
-            // update case 1e
-            // no room for bargaining
-            if (power_at_zero_w>power_at_zero_m) {
-                for (int iP=0; iP<par->num_power; iP++){
-                    divorce(iP, power_idx, power, idx_couple, list_start_as_couple, list_trans_to_single, num, par);
-                    if (do_print){
-                        logs::write("barg_log.txt", 1, "\n       - no value consistent with marriage -> divorce");
-                    }
-                }
-            }
-            //bargaining
-            else {
-                for (int iP=0; iP<par->num_power; iP++){
-                    if (iP==0){ //update to woman's indifference point
-                        update_to_indifference(iP, left_w, Low_w, power_at_zero_w, power_idx, power, idx_couple, list_start_as_couple, list_remain_couple, num, par, -1);
-                        if (do_print){
-                            logs::write("barg_log.txt", 1, "\n       - updating index %d to wife's indifference point %d", iP, Low_w);
-                        }
-                    }
-                    else if (iP<Low_w){ //re-use pre-computed values
-                        update_to_indifference(iP, left_w, Low_w, power_at_zero_w, power_idx, power, idx_couple, list_start_as_couple, list_remain_couple, num, par, 0);
-                        if (do_print){
-                            logs::write("barg_log.txt", 1, "\n       - updating index %d to wife's indifference point %d", iP, Low_w);
-                        }
-                    }
-                    else if (iP>=Low_w && iP <= Low_m) { //no change between Low_w and Low_m
-                        remain(iP, power_idx, power, idx_couple, list_start_as_couple, list_remain_couple, num, par);
-                        if (do_print){
-                            logs::write("barg_log.txt", 1, "\n       - index %d remains unchanged", iP);
-                        }
-                    }
-                    else if (iP == Low_m+1) { //update to man's indifference point
-                        update_to_indifference(iP, left_m, Low_m, power_at_zero_m, power_idx, power, idx_couple, list_start_as_couple, list_remain_couple, num, par, -1);
-                        if (do_print){
-                            logs::write("barg_log.txt", 1, "\n       - updating index %d to husband's indifference point %d", iP, Low_m);
-                        }
-                    }
-                    else { // re-use precomputed values
-                        update_to_indifference(iP, left_m, Low_m, power_at_zero_m, power_idx, power, idx_couple, list_start_as_couple, list_remain_couple, num, par, Low_m+1);
-                        if (do_print){
-                            logs::write("barg_log.txt", 1, "\n       - updating index %d to husband's indifference point %d", iP, Low_m);
-                        }
-                    } //if (indifference points)
-                }//for
-            } //if (bargaining)
-        } //case 1e
-    } //end of check_participation_constraints
+    } // FULL COMMITMENT
 
 } // namespace bargaining

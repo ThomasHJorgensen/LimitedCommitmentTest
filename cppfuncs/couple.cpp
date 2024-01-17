@@ -170,7 +170,7 @@ namespace couple {
         double saving = resources(labor_w,labor_m,A,Kw,Km,par) - cons;
         if(saving<0.0){ // budget constraint: no borrowing
             penalty += 1000.0*saving*saving;
-            cons -= saving; 
+            cons -= saving; // TODO: is this the right way to do it?
         }
         double low_cons = 1.0e-6;
         if (cons <low_cons) {
@@ -431,7 +431,45 @@ namespace couple {
                             list_trans_to_single[i] = sol->cons_m_single[idx_single_m]; i++; 
 
                             // Update solutions in list_start_as_couple
-                            bargaining::check_participation_constraints(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
+                            int bargaining = par->bargaining;
+                            if (t==0){
+                                bargaining = 2; // NASH bargaining in first period
+                            }
+                            if(bargaining==1){ // limited commitment
+
+                                bargaining::limited_commitment(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
+                            
+                            } else if(bargaining==2){ // no commitment, Nash (equal weight, discrete)
+
+                                bargaining::nash(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
+                            
+                            } else { // no bargaining - full commitment
+
+                                bargaining::full_commitment(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
+
+                                // for (int iP=0; iP<par->num_power; iP++){
+                                //     int idx_tmp = idx_couple->idx(iP);
+
+                                //     if((Sw[iP]<0.0)|(Sm[iP]<0.0)){
+                                //         for(int i=0;i<num;i++){
+                                //             list_start_as_couple[i][idx_tmp] = list_trans_to_single[i];
+                                //         }
+                                //         sol->power_idx[idx_tmp] = -1;
+                                //         sol->power[idx_tmp] = -1.0;
+
+                                //     } else {
+                                        
+                                //         for(int i=0;i<num;i++){
+                                //             list_start_as_couple[i][idx_tmp] = list_remain_couple[i][idx_tmp];
+                                //         }
+
+                                //         sol->power_idx[idx_tmp] = iP;
+                                //         sol->power[idx_tmp] = par->grid_power[iP];
+
+                                //     }
+                                // }
+
+                            } // bargaining_model check
 
                         } // human capital, man
                     } // human capital, woman
