@@ -35,22 +35,28 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.div_A_share = 0.5 # divorce share of wealth to wife
 
         # Utility: gender-specific parameters
-        par.rho_w = 2.0        # CRRA
-        par.rho_m = 2.0        
+        par.gamma1_w = 1.5        # CRRA  from Mariage labor supply and the Dynamics of social safety net
+        par.gamma1_m = 1.5        # CRRA from Mariage labor supply and the Dynamics of social safety net
+
         
-        par.alpha_w = 1.0 # disutility weight of labor
-        par.alpha_m = 1.0
-        
-        par.phi_w = 0.2 # curvature on disutility of labor
-        par.phi_m = 0.2
+        par.gamma2_w = 0.45        # average from Mariage labor supply and the Dynamics of social safety net
+        par.gamma2_m = 0.45        # average from Mariage labor supply and the Dynamics of social safety net
+
 
         # wage process
-        par.wage_const_w = 1.0
-        par.wage_const_m = 1.0
+        par.kappa1 = 0.3 #proportionality of the tax system
+        par.kappa2 = 0.185 #progression of the tax system from Heathcote et al
 
-        par.wage_K_w = 0.1
-        par.wage_K_m = 0.1
+        par.wage_const_w = 0.773
+        par.wage_const_m = 0.771
 
+        par.wage_K_w = 0.085
+        par.wage_K_m = 0.103
+        par.wage_K_w = 0.05
+        par.wage_K_m = 0.07
+
+        par.lambdaa2 = 1.0 #HK return to work  
+ 
         par.K_depre = 0.1
         
         # state variables

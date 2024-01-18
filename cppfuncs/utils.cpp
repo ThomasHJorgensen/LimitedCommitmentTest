@@ -5,19 +5,22 @@
 #endif
 
 namespace utils {
-    double util(double cons,double labor ,int gender,par_struct *par){
-        double rho = par->rho_w;
-        double phi = par->phi_w;
-        double alpha = par->alpha_w;
-        if (gender == man) { 
-            rho = par->rho_m;
-            phi = par->phi_m;
-            alpha = par->alpha_m;
+    // User-specified functions
+    double equiv_scale(double cons, double d) {
+        return cons / (1.0 + 0.7 * (1.0 - d));
+    }
+
+    double util(double cons,double labor ,int gender, double d, par_struct *par){
+        double gamma1 = par->gamma1_w;
+        double gamma2 = par->gamma2_w;
+        if (gender == man) {
+            gamma1 = par->gamma1_w;
+            gamma2 = par->gamma2_w;
         }
-        
-        double util_cons = pow(cons,1.0-rho)/(1.0-rho);
-        double util_labor = - alpha*pow(labor,1.0+phi)/(1.0+phi);
-        return  util_cons + util_labor;
+
+        double C_public = equiv_scale(cons, d);
+
+        return  (pow(C_public * exp(gamma2 * (1 - labor)), 1 - gamma1)) / (1 - gamma1) ;
     }
 
 
@@ -32,8 +35,15 @@ namespace utils {
         return exp(wage_const + wage_K*K);
     }
 
+    double tax_func(double income, par_struct *par) {
+        double kappa1 = par->kappa1;
+        double kappa2 = par->kappa2;
+
+        return (1.0 - kappa1) * pow(income, 1.0 - kappa2);
+    }
+
     double K_bar(double K, double labor, par_struct* par){
-        return (1.0-par->K_depre)*K + labor;
+        return 1.0+(1.0-par->K_depre)*K + par->lambdaa2*labor;
     }
 
 }

@@ -40,7 +40,9 @@ namespace couple {
     EXPORT double resources(double labor_w, double labor_m,double A,double Kw, double Km,par_struct* par) {
         double income_w = labor_w * utils::wage_func(Kw,woman,par);
         double income_m = labor_m * utils::wage_func(Km,man,par);
-        return par->R*A + income_w + income_m;
+        double income = income_w + income_m;
+        double after_tax_income = utils::tax_func(income,par);
+        return par->R*A + after_tax_income;
     }
 
     // pre-compute
@@ -117,9 +119,10 @@ namespace couple {
     }
 
     double value_of_choice(double* Vw,double* Vm,double cons,double labor_w,double labor_m,double power,double love,double A,double Kw,double Km, int t,double* EVw_next,double* EVm_next,par_struct* par){
+        double d = 0.0; // d=divorce
         // current utility flow
-        Vw[0] = utils::util(cons,labor_w,woman,par) + love;
-        Vm[0] = utils::util(cons,labor_m,man,par) + love;
+        Vw[0] = utils::util(cons,labor_w,woman, d,par) + love;
+        Vm[0] = utils::util(cons,labor_m,man,d,par) + love;
 
         // add continuation value 
         if(t<par->T-1){

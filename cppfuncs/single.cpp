@@ -24,13 +24,14 @@ namespace single {
     
     EXPORT double resources_single(double labor,double A,double K,int gender,par_struct* par) {
         double income = labor * utils::wage_func(K,gender,par);
+        double after_tax_income = utils::tax_func(income,par);
         return par->R*A + income;
     }
 
     double value_of_choice(double cons, double labor,double A, double K, int gender,int t, double* V_next, par_struct* par){
-
+        double d = 1.0; //Divorce
         // flow-utility
-        double Util = utils::util(cons,labor,gender,par);
+        double Util = utils::util(cons,labor,gender,d,par);
         
         // continuation value
         double EVnext = 0.0;
