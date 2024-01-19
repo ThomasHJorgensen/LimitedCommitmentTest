@@ -24,6 +24,7 @@ namespace sim {
             double V_single_partner;
 
             bool flip = false;
+            double* grid_power;
             if ((Vm_couple>=Vm_single)){ // woman wants to leave
 
                 V_remain_couple = sol->Vw_remain_couple;
@@ -33,6 +34,7 @@ namespace sim {
                 V_single_partner = Vm_single;
 
                 flip = false;
+                grid_power = par->grid_power;
 
             } else { // man wants to leave
 
@@ -43,6 +45,7 @@ namespace sim {
                 V_single_partner = Vw_single;
 
                 flip = true;
+                grid_power = par->grid_power_flip;
 
             }
 
@@ -63,7 +66,7 @@ namespace sim {
             
 
             // interpolate the power based on the value of single to find indifference-point. (flip the axis)
-            power = tools::interp_1d(V_power_vec, par->num_power, par->grid_power, V_single);
+            power = tools::interp_1d(V_power_vec, par->num_power, grid_power, V_single);
             delete V_power_vec;
 
             if((power<0.0)|(power>1.0)){ // divorce
