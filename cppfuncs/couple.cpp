@@ -450,28 +450,6 @@ namespace couple {
 
                                 bargaining::full_commitment(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
 
-                                // for (int iP=0; iP<par->num_power; iP++){
-                                //     int idx_tmp = idx_couple->idx(iP);
-
-                                //     if((Sw[iP]<0.0)|(Sm[iP]<0.0)){
-                                //         for(int i=0;i<num;i++){
-                                //             list_start_as_couple[i][idx_tmp] = list_trans_to_single[i];
-                                //         }
-                                //         sol->power_idx[idx_tmp] = -1;
-                                //         sol->power[idx_tmp] = -1.0;
-
-                                //     } else {
-                                        
-                                //         for(int i=0;i<num;i++){
-                                //             list_start_as_couple[i][idx_tmp] = list_remain_couple[i][idx_tmp];
-                                //         }
-
-                                //         sol->power_idx[idx_tmp] = iP;
-                                //         sol->power[idx_tmp] = par->grid_power[iP];
-
-                                //     }
-                                // }
-
                             } // bargaining_model check
 
                         } // human capital, man
