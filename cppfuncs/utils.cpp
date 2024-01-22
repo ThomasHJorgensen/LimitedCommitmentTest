@@ -43,7 +43,8 @@ namespace utils {
     }
 
     double K_bar(double K, double labor, par_struct* par){
-        return 1.0+(1.0-par->K_depre)*K + par->lambdaa2*labor;
+        return (1.0-par->K_depre)*K + par->lambdaa2*labor;
+        //return (1.0-par->K_depre)*K + par->lambdaa2*labor;
     }
 
 }

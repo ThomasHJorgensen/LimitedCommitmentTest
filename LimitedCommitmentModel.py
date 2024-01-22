@@ -39,8 +39,8 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.gamma1_m = 1.5        # CRRA from Mariage labor supply and the Dynamics of social safety net
 
         
-        par.gamma2_w = 0.45        # average from Mariage labor supply and the Dynamics of social safety net
-        par.gamma2_m = 0.45        # average from Mariage labor supply and the Dynamics of social safety net
+        par.gamma2_w = 1.55        # average from Mariage labor supply and the Dynamics of social safety net
+        par.gamma2_m = 1.55        # average from Mariage labor supply and the Dynamics of social safety net
 
 
         # wage process
@@ -52,8 +52,6 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         par.wage_K_w = 0.085
         par.wage_K_m = 0.103
-        par.wage_K_w = 0.05
-        par.wage_K_m = 0.07
 
         par.lambdaa2 = 1.0 #HK return to work  
  
@@ -80,7 +78,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.num_love = 10
         par.max_love = 1.0
 
-        par.sigma_love = 0.1
+        par.sigma_love = 0.031  # from Mariage labor supply and the Dynamics of social safety net
         par.num_shock_love = 5 
 
         # simulation
