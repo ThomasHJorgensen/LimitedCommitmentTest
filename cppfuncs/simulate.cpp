@@ -282,7 +282,7 @@ namespace sim {
                         sim->A[it] = resources - cons;
                         if(t<par->T-1){
                             sim->love[it1] = sim->love[it] + sim->draw_love[it1];
-                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],par) * sim->draw_Kw[it1];
+                           sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],par) * sim->draw_Kw[it1];
                             sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],par) * sim->draw_Km[it1];
                         }
 
@@ -312,6 +312,14 @@ namespace sim {
                         sim->labor_w[it] = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,labor_single_w,Aw_lag,sim->Kw[it]);
                         sim->labor_m[it] = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,labor_single_m,Am_lag,sim->Km[it]);
 
+                        //double labor_w_s  = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,labor_single_w,Aw_lag,sim->Kw[it]);
+                        //double labor_m_s = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,labor_single_m,Am_lag,sim->Km[it]);
+
+                        //sim->labor_w[it] = MIN(labor_w_s,1); //Cannot work more than full time
+                        //sim->labor_w[it] = MAX(labor_w_s,0); //Cannot work less than zero
+                        //sim->labor_m[it] = MIN(labor_m_s,1); //Cannot work more than full time
+                        //sim->labor_m[it] = MAX(labor_m_s,0); //Cannot work less than zero
+
                         double resources_w = single::resources_single(sim->labor_w[it],Aw_lag,sim->Kw[it],woman,par); 
                         double resources_m = single::resources_single(sim->labor_m[it],Am_lag,sim->Km[it],man,par); 
 
@@ -325,6 +333,10 @@ namespace sim {
                         // update end-of-period states
                         sim->Aw[it] = resources_w - sim->cons_w[it];
                         sim->Am[it] = resources_m - sim->cons_m[it];
+                        
+                        //sim->Aw[it] = MIN(sim->Aw[it],par->max_Aw);
+                        //#sim->Am[it] = MIN(sim->Am[it],par->max_Am);
+
 
                         if(t<par->T-1){
                             sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],par) * sim->draw_Kw[it1];

@@ -50,8 +50,8 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.wage_const_w = 1.7
         par.wage_const_m = 1.7
 
-        par.wage_K_w = 0.95
-        par.wage_K_m = 1.4
+        par.wage_K_w = 0.095
+        par.wage_K_m = 0.14
 
         par.lambdaa2 = 1.0 #HK return to work  
  
@@ -63,6 +63,9 @@ class LimitedCommitmentModelClass(EconModelClass):
         # wealth
         par.num_A = 50
         par.max_A = 15.0
+        #par.max_A = 3000.0
+        par.max_Aw = par.max_A*par.div_A_share 
+        par.max_Am = par.max_A*(1-par.div_A_share )
 
         # human capital
         par.num_K = 10
@@ -170,9 +173,10 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # initial distribution
         sim.init_A = par.grid_A[0] + np.zeros(par.simN)
-        sim.init_Aw = np.zeros(par.simN)
-        sim.init_Am = np.zeros(par.simN)
-        sim.init_couple = np.ones(par.simN,dtype=np.bool_)
+        sim.init_Aw = par.grid_Aw[0] + np.zeros(par.simN)
+        sim.init_Am = par.grid_Am[0] +  np.zeros(par.simN)
+        #sim.init_couple = np.ones(par.simN,dtype=np.bool_)
+        sim.init_couple = np.zeros(par.simN,dtype=np.bool_)
         sim.init_power_idx = par.num_power//2 * np.ones(par.simN,dtype=np.int_)
         sim.init_love = np.zeros(par.simN)
         sim.init_Kw = np.zeros(par.simN)

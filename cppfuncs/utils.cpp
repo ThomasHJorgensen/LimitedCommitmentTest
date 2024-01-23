@@ -20,7 +20,7 @@ namespace utils {
 
         double C_public = equiv_scale(cons, d);
 
-        return  (pow(C_public * exp(gamma2 * (1 - labor)), 1 - gamma1)) / (1 - gamma1) ;
+        return  (pow(C_public * exp(gamma2 * (1.0 - labor)), 1.0 - gamma1)) / (1.0 - gamma1) ;
     }
 
 
