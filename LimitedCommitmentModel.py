@@ -47,11 +47,11 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.kappa1 = 0.3 #proportionality of the tax system
         par.kappa2 = 0.185 #progression of the tax system from Heathcote et al
 
-        par.wage_const_w = 0.773
-        par.wage_const_m = 0.771
+        par.wage_const_w = 1.7
+        par.wage_const_m = 1.7
 
-        par.wage_K_w = 0.085
-        par.wage_K_m = 0.103
+        par.wage_K_w = 0.95
+        par.wage_K_m = 1.4
 
         par.lambdaa2 = 1.0 #HK return to work  
  
