@@ -18,10 +18,10 @@ EXPORT void solve(sol_struct *sol, par_struct *par){
 
         single::solve_single(t,sol,par); 
         
-        if(t<(par->T-1)){
-            couple::precompute_EV(t+1,sol,par);
-        }
-        couple::solve_couple(t,sol,par);
+        //if(t<(par->T-1)){
+        //    couple::precompute_EV(t+1,sol,par);
+        //}
+        //couple::solve_couple(t,sol,par);
 
     }
 }

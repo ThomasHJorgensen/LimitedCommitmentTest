@@ -7,20 +7,26 @@
 namespace utils {
     // User-specified functions
     double equiv_scale(double cons, double d) {
-        return cons / (1.0 + 0.7 * (1.0 - d));
+        return cons/(1.0 + 0.7 * (1.0 - d));
     }
 
     double util(double cons,double labor ,int gender, double d, par_struct *par){
         double gamma1 = par->gamma1_w;
         double gamma2 = par->gamma2_w;
+        double gamma3 = par->gamma3_w;
         if (gender == man) {
-            gamma1 = par->gamma1_w;
-            gamma2 = par->gamma2_w;
+            gamma1 = par->gamma1_m;
+            gamma2 = par->gamma2_m;
+            gamma3 = par->gamma3_m;
         }
 
         double C_public = equiv_scale(cons, d);
-
-        return  (pow(C_public * exp(gamma2 * (1.0 - labor)), 1.0 - gamma1)) / (1.0 - gamma1) ;
+        //double util_labor = -(pow(labor,gamma2))/(gamma2);
+        //double util_cons = (pow(C_public,1.0-gamma1))/(1.0-gamma1);
+        double util_cons = (pow((C_public*exp(gamma2 * (labor))),1-gamma1))/(1-gamma1);
+        double util_labor = -(pow(labor,gamma3))/(gamma3);
+        return util_labor + util_cons;
+        
     }
 
 

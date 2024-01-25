@@ -42,6 +42,9 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.gamma2_w = 1.55        # average from Mariage labor supply and the Dynamics of social safety net
         par.gamma2_m = 1.55        # average from Mariage labor supply and the Dynamics of social safety net
 
+        par.gamma3_w = 1.5       
+        par.gamma3_m= 1.5       
+
 
         # wage process
         par.kappa1 = 0.3 #proportionality of the tax system

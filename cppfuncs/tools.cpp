@@ -285,6 +285,42 @@ double interp_2d(double* grid1,double* grid2,int num1, int num2,double* value,do
 }
 
 
+
+double interp_2d_slice1(double* grid1,double* grid2, int numis1,  int num1,  int num2,double* value, int is1, double xi1,double xi2){
+    
+    // a. search in each dimension
+    int j1 = binary_search(0,num1,grid1,xi1);
+    int j2 = binary_search(0,num2,grid2,xi2);
+
+    // b. left/right
+    double nom_1_left = grid1[j1+1]-xi1;
+    double nom_1_right = xi1-grid1[j1];
+
+    double nom_2_left = grid2[j2+1]-xi2;
+    double nom_2_right = xi2-grid2[j2];
+
+    // c. interpolation
+    double denom = (grid1[j1+1]-grid1[j1])*(grid2[j2+1]-grid2[j2]);
+
+    double nom = 0.0;
+    for (size_t k1 = 0; k1 < 2; k1++){
+        double nom_1 = nom_1_left;
+        if (k1==1){ nom_1 = nom_1_right;}
+
+        for (size_t k2 = 0; k2 < 2; k2++){
+            double nom_2 = nom_2_left;
+            if (k2==1){ nom_2 = nom_2_right;}
+
+            int idx = index::index3(is1,j1+k1,j2+k2,numis1,num1,num2);
+            nom += nom_1*nom_2*value[idx]; //value[(j1+k1)*num2 + j2+k2];
+        }
+    }
+
+    return nom/denom;
+}
+
+
+
 double interp_2d_int(double* grid1,double* grid2,int num1, int num2,int* value,double xi1,double xi2){
     
     // a. search in each dimension
@@ -464,6 +500,54 @@ void _interp_4d_2out(double* out1,double* out2, double* grid1,double* grid2,doub
                     if (k4==1){ nom_4 = nom_4_right;}         
 
                     int idx = index::index4(j1+k1,j2+k2,j3+k3,j4+k4, num1,num2, num3,num4);   
+                    nom1 += nom_1*nom_2*nom_3*nom_4*value1[idx];
+                    nom2 += nom_1*nom_2*nom_3*nom_4*value2[idx];
+                }
+            }
+        }
+    }
+
+    out1[0] = nom1/denom;
+    out2[0] = nom2/denom;
+}
+
+
+void _interp_4d_2out_slice2(double* out1,double* out2, double* grid1,double* grid2,double* grid3,double* grid4,int numis1, int numis2,int num1, int num2, int num3, int num4,double* value1, double* value2,int is1, int is2, double xi1,double xi2,double xi3,double xi4,int j1, int j2, int j3, int j4){
+
+    // b. left/right
+    double nom_1_left = grid1[j1+1]-xi1;
+    double nom_1_right = xi1-grid1[j1];
+
+    double nom_2_left = grid2[j2+1]-xi2;
+    double nom_2_right = xi2-grid2[j2];
+
+    double nom_3_left = grid3[j3+1]-xi3;
+    double nom_3_right = xi3-grid3[j3];
+
+    double nom_4_left = grid4[j4+1]-xi4;
+    double nom_4_right = xi4-grid4[j4];
+
+    // c. interpolation
+    double denom = (grid1[j1+1]-grid1[j1])*(grid2[j2+1]-grid2[j2])*(grid3[j3+1]-grid3[j3])*(grid4[j4+1]-grid4[j4]);
+    double nom1 = 0.0;
+    double nom2 = 0.0;
+    for (size_t k1 = 0; k1 < 2; k1++){
+        double nom_1 = nom_1_left;
+        if (k1==1){ nom_1 = nom_1_right;}
+
+        for (size_t k2 = 0; k2 < 2; k2++){
+            double nom_2 = nom_2_left;
+            if (k2==1){ nom_2 = nom_2_right;}
+
+            for (size_t k3 = 0; k3 < 2; k3++){
+                double nom_3 = nom_3_left;
+                if (k3==1){ nom_3 = nom_3_right;}    
+
+                for (size_t k4 = 0; k4 < 2; k4++){
+                    double nom_4 = nom_4_left;
+                    if (k4==1){ nom_4 = nom_4_right;}         
+
+                    int idx = index::index6(is1, is2, j1+k1,j2+k2,j3+k3,j4+k4, numis1, numis2, num1,num2, num3,num4);   
                     nom1 += nom_1*nom_2*nom_3*nom_4*value1[idx];
                     nom2 += nom_1*nom_2*nom_3*nom_4*value2[idx];
                 }
