@@ -6,7 +6,7 @@ import scipy.optimize as optimize
 import statsmodels.api as sm
 
 
-def create_data(model,start_p = 1, end_p = 4, to_xl = False):
+def create_data(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulated_data'):
     
     par = model.par 
     sim = model.sim 
@@ -30,7 +30,7 @@ def create_data(model,start_p = 1, end_p = 4, to_xl = False):
     y_w         =  wage_w*model.sim.labor_w
     wage_m      =  np.exp(model.par.wage_const_m+model.par.wage_K_m* model.sim.Km)
     y_m         =  wage_m*model.sim.labor_m
-    init_barg   =  np.random.randint(2, size = model.par.simN) #TODO: use the correct one
+    init_barg   =  model.sim.init_Kw > model.sim.init_Km
     Z_w         = 1 #TODO: Include Z values
     Z_m         = 1 #TODO: Include Z values
 
@@ -108,7 +108,7 @@ def create_data(model,start_p = 1, end_p = 4, to_xl = False):
     #sort data
     data = data.sort_values(by =['idx','t'])
     if to_xl: 
-        data.to_excel('simulated_data.xlsx')
+        data.to_excel(f'{name_xl}.xlsx')
 
     #create variable
     data = create_variable(data)

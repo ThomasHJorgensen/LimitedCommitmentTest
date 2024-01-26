@@ -178,12 +178,15 @@ class LimitedCommitmentModelClass(EconModelClass):
         sim.init_A = par.grid_A[0] + np.zeros(par.simN)
         sim.init_Aw = par.grid_Aw[0] + np.zeros(par.simN)
         sim.init_Am = par.grid_Am[0] +  np.zeros(par.simN)
-        #sim.init_couple = np.ones(par.simN,dtype=np.bool_)
-        sim.init_couple = np.zeros(par.simN,dtype=np.bool_)
+        sim.init_couple = np.ones(par.simN,dtype=np.bool_)
+        #sim.init_couple = np.zeros(par.simN,dtype=np.bool_)
         sim.init_power_idx = par.num_power//2 * np.ones(par.simN,dtype=np.int_)
         sim.init_love = np.zeros(par.simN)
-        sim.init_Kw = np.zeros(par.simN)
-        sim.init_Km = np.zeros(par.simN)
+        #sim.init_Kw = np.zeros(par.simN)
+        #sim.init_Km = np.zeros(par.simN)
+        sim.init_Kw = np.random.uniform(low=0.0,high = 6.0,size=par.simN)
+        sim.init_Km = np.random.uniform(low=0.0,high = 6.0,size=par.simN)
+
         
         
     def setup_grids(self):
