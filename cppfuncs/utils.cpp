@@ -48,9 +48,13 @@ namespace utils {
         return (1.0 - kappa1) * pow(income, 1.0 - kappa2);
     }
 
-    double K_bar(double K, double labor, par_struct* par){
-        return (1.0-par->K_depre)*K + par->lambdaa2*labor;
-        //return (1.0-par->K_depre)*K + par->lambdaa2*labor;
+    double K_bar(double K, double labor, int t, par_struct* par){
+        double tt = t;
+        double HK = par->lambdaa2*0.7*(tt+1);
+        if (par->do_HK) {
+            HK = (1.0-par->K_depre)*K + par->lambdaa2*labor;
+        }
+        return HK;
     }
 
 }

@@ -100,7 +100,11 @@ class LimitedCommitmentModelClass(EconModelClass):
         # post-decision states
         par.num_A_pd = 80
         par.num_K_pd = 20
-        
+
+        #do Human capital
+        par.do_HK = True
+
+
     def allocate(self):
         par = self.par
         sol = self.sol
@@ -179,13 +183,12 @@ class LimitedCommitmentModelClass(EconModelClass):
         sim.init_Aw = par.grid_Aw[0] + np.zeros(par.simN)
         sim.init_Am = par.grid_Am[0] +  np.zeros(par.simN)
         sim.init_couple = np.ones(par.simN,dtype=np.bool_)
-        #sim.init_couple = np.zeros(par.simN,dtype=np.bool_)
         sim.init_power_idx = par.num_power//2 * np.ones(par.simN,dtype=np.int_)
         sim.init_love = np.zeros(par.simN)
-        #sim.init_Kw = np.zeros(par.simN)
-        #sim.init_Km = np.zeros(par.simN)
-        sim.init_Kw = np.random.uniform(low=0.0,high = 6.0,size=par.simN)
-        sim.init_Km = np.random.uniform(low=0.0,high = 6.0,size=par.simN)
+        sim.init_Kw = np.random.uniform(low=0.0,high = 10.0,size=par.simN)
+        sim.init_Km = np.random.uniform(low=0.0,high = 10.0,size=par.simN)
+        #sim.init_Kw = np.random.uniform(low=0.0,high = 2.0,size=par.simN)
+        #sim.init_Km = np.random.uniform(low=0.0,high = 2.0,size=par.simN)
 
         
         
@@ -219,7 +222,7 @@ class LimitedCommitmentModelClass(EconModelClass):
             par.grid_shock_love,par.grid_weight_love = quadrature.normal_gauss_hermite(par.sigma_love,par.num_shock_love)
 
         # human capital
-        par.grid_K = nonlinspace(0.0,par.max_K,par.num_K,1.1)
+        par.grid_K = nonlinspace(0.0,par.max_K,par.num_K,1.1)   
 
         if par.sigma_K<=1.0e-6:
             par.num_shock_K = 1

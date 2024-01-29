@@ -43,7 +43,7 @@ namespace single {
 
             // Expected continuation value
             double A_next = resources_single(labor,A,K,gender,par) - cons;
-            double Kbar = utils::K_bar(K,labor,par);
+            double Kbar = utils::K_bar(K,labor,t,par);
 
             for(int iK_next=0;iK_next<par->num_shock_K;iK_next++){
                 double K_next = Kbar*par->grid_shock_K[iK_next];

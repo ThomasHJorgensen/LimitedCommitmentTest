@@ -127,8 +127,8 @@ namespace couple {
         // add continuation value 
         if(t<par->T-1){
             double A_next = resources(labor_w,labor_m,A,Kw,Km,par) - cons ;
-            double Kbar_w = utils::K_bar(Kw,labor_w,par);
-            double Kbar_m = utils::K_bar(Km,labor_m,par);
+            double Kbar_w = utils::K_bar(Kw,labor_w,t,par);
+            double Kbar_m = utils::K_bar(Km,labor_m,t,par);
 
             // interpolate next-period expected value (pre-computed) wrt. Anext,Kwbar,Kmbar (love is on grid)
             double EVw_plus,EVm_plus;
