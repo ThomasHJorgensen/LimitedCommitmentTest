@@ -28,8 +28,10 @@ class LimitedCommitmentModelClass(EconModelClass):
     def setup(self):
         par = self.par
         
-        par.R = 1.03
-        par.beta = 1.0/par.R # Discount factor
+        #par.R = 1.03
+        par.R = 1.015
+        #par.beta = 1.0/par.R # Discount factor
+        par.beta = 0.98 # Discount factor
         
         par.div_cost = 0.0
         par.div_A_share = 0.5 # divorce share of wealth to wife
@@ -49,6 +51,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         # wage process
         par.kappa1 = 0.3 #proportionality of the tax system
         par.kappa2 = 0.185 #progression of the tax system from Heathcote et al
+        par.kappa2 = 0.0 #progression of the tax system from Heathcote et al
 
         par.wage_const_w = 1.7
         par.wage_const_m = 1.7
@@ -74,7 +77,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.num_K = 10
         par.max_K = 20.0
 
-        par.sigma_K = 0.1
+        par.sigma_K = 0.5
         par.num_shock_K = 5
         
         # bargaining power
@@ -85,11 +88,12 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.max_love = 1.0
 
         par.sigma_love = 0.031  # from Mariage labor supply and the Dynamics of social safety net
+        #par.sigma_love = 0.0
         par.num_shock_love = 5 
 
         # simulation
         par.seed = 9210
-        par.simN = 50_000
+        par.simN = 20_000
 
         # bargaining model
         par.bargaining = 1 # 0: no bargaining, full commitment, 1: limited commitment, 2: no commitment, 'Nash' bargaining
@@ -185,8 +189,10 @@ class LimitedCommitmentModelClass(EconModelClass):
         sim.init_couple = np.ones(par.simN,dtype=np.bool_)
         sim.init_power_idx = par.num_power//2 * np.ones(par.simN,dtype=np.int_)
         sim.init_love = np.zeros(par.simN)
-        sim.init_Kw = np.random.uniform(low=0.0,high = 10.0,size=par.simN)
-        sim.init_Km = np.random.uniform(low=0.0,high = 10.0,size=par.simN)
+        #TODO: TÆNK OVER DENNE MED INIT, lige nu stor variation for at få variation i initiale barganing
+        # det giver en periode med meget højt løn (uden HK) generelt højere løn (med HK). 
+        sim.init_Kw = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=par.simN))
+        sim.init_Km = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=par.simN))
         #sim.init_Kw = np.random.uniform(low=0.0,high = 2.0,size=par.simN)
         #sim.init_Km = np.random.uniform(low=0.0,high = 2.0,size=par.simN)
 

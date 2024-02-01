@@ -233,6 +233,8 @@ namespace sim {
                         sim->love[it] = sim->init_love[i];
                         sim->Kw[it] = sim->init_Kw[i];
                         sim->Km[it] = sim->init_Km[i];
+                        sim->Kw[it] = MIN(sim->Kw[it],par->max_K); // cannot accumulate more HK than max
+                        sim->Km[it] = MIN(sim->Km[it],par->max_K); // cannot accumulate more HK than max
 
                         bargaining = 2; // NASH in initial period
 
@@ -271,7 +273,12 @@ namespace sim {
 
                         // optimal labor supply and consumption
                         tools::interp_5d_2out(&sim->labor_w[it],&sim->labor_m[it], par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->labor_w_remain_couple[idx_sol],&sol->labor_m_remain_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]);
-                        
+                        sim->labor_w[it] = MAX(sim->labor_w[it],0); // work between 0 and 1
+                        sim->labor_w[it] = MIN(sim->labor_w[it],1); // work between 0 and 1
+                        sim->labor_m[it] = MAX(sim->labor_m[it],0); // work between 0 and 1
+                        sim->labor_m[it] = MIN(sim->labor_m[it],1); // work between 0 and 1
+
+
                         double resources = couple::resources(sim->labor_w[it],sim->labor_m[it],A_lag,sim->Kw[it],sim->Km[it],par); 
                         double cons = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->cons_w_remain_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
                         cons = MIN(cons,resources); // cannot borrow. This removes small numerical violations
@@ -282,8 +289,10 @@ namespace sim {
                         sim->A[it] = resources - cons;
                         if(t<par->T-1){
                             sim->love[it1] = sim->love[it] + sim->draw_love[it1];
-                           sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t,par) * sim->draw_Kw[it1];
-                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t,par) * sim->draw_Km[it1];
+                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) * sim->draw_Kw[it1];
+                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) * sim->draw_Km[it1];
+                            sim->Kw[it1] = MIN(sim->Kw[it1],par->max_K); // cannot accumulate more HK than max
+                            sim->Km[it1] = MIN(sim->Km[it1],par->max_K); // cannot accumulate more HK than max
                         }
 
                         // in case of divorce
@@ -311,14 +320,10 @@ namespace sim {
                         // optimal consumption and labor supply [could be smarter about this interpolation]
                         sim->labor_w[it] = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,labor_single_w,Aw_lag,sim->Kw[it]);
                         sim->labor_m[it] = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,labor_single_m,Am_lag,sim->Km[it]);
-
-                        //double labor_w_s  = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,labor_single_w,Aw_lag,sim->Kw[it]);
-                        //double labor_m_s = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,labor_single_m,Am_lag,sim->Km[it]);
-
-                        //sim->labor_w[it] = MIN(labor_w_s,1); //Cannot work more than full time
-                        //sim->labor_w[it] = MAX(labor_w_s,0); //Cannot work less than zero
-                        //sim->labor_m[it] = MIN(labor_m_s,1); //Cannot work more than full time
-                        //sim->labor_m[it] = MAX(labor_m_s,0); //Cannot work less than zero
+                        sim->labor_w[it] = MAX(sim->labor_w[it],0); // work between 0 and 1
+                        sim->labor_w[it] = MIN(sim->labor_w[it],1); // work between 0 and 1
+                        sim->labor_m[it] = MAX(sim->labor_m[it],0); // work between 0 and 1
+                        sim->labor_m[it] = MIN(sim->labor_m[it],1); // work between 0 and 1
 
                         double resources_w = single::resources_single(sim->labor_w[it],Aw_lag,sim->Kw[it],woman,par); 
                         double resources_m = single::resources_single(sim->labor_m[it],Am_lag,sim->Km[it],man,par); 
@@ -333,14 +338,13 @@ namespace sim {
                         // update end-of-period states
                         sim->Aw[it] = resources_w - sim->cons_w[it];
                         sim->Am[it] = resources_m - sim->cons_m[it];
-                        
-                        //sim->Aw[it] = MIN(sim->Aw[it],par->max_Aw);
-                        //#sim->Am[it] = MIN(sim->Am[it],par->max_Am);
-
+                    
 
                         if(t<par->T-1){
-                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t,par) * sim->draw_Kw[it1];
-                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t,par) * sim->draw_Km[it1];
+                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) * sim->draw_Kw[it1];
+                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) * sim->draw_Km[it1];
+                            sim->Kw[it1] = MIN(sim->Kw[it1],par->max_K); // cannot accumulate more HK than max
+                            sim->Km[it1] = MIN(sim->Km[it1],par->max_K); // cannot accumulate more HK than max
                         }
 
                         sim->power[it] = -1.0;

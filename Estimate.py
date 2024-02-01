@@ -5,6 +5,74 @@ import pandas as pd
 import scipy.optimize as optimize
 import statsmodels.api as sm
 
+def create_data_new(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulated_data'):
+    
+    par = model.par 
+    sim = model.sim 
+
+    #update stockastic elements.
+    shape_sim = (par.simN,par.T)
+    sim.draw_love = par.sigma_love * np.random.normal(size=shape_sim)
+    sim.draw_Kw = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
+    sim.draw_Km = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
+
+    #simulate the data
+    model.simulate()
+
+    #Save the data in a data frame
+    data_nu = {}
+    data   = pd.DataFrame()
+
+    #TODO: save it while simulating
+    wage_w      =  np.exp(model.par.wage_const_w +model.par.wage_K_w* model.sim.Kw)  
+    y_w         =  wage_w*model.sim.labor_w
+    wage_m      =  np.exp(model.par.wage_const_m+model.par.wage_K_m* model.sim.Km)
+    y_m         =  wage_m*model.sim.labor_m
+    init_barg   =  model.sim.init_Kw > model.sim.init_Km
+    Z_w         = 1 #TODO: Include Z values
+    Z_m         = 1 #TODO: Include Z values
+
+    for i in range(start_p, end_p): #use some periods in the middle of the simluation
+
+        # WOMAN
+        #value this period and last period, 
+        data_nu[i] = pd.DataFrame({
+            'idx': range(1,model.par.simN+1) ,
+            't' : i,
+            'wealth' : model.sim.A[:,i] ,
+            'couple': model.sim.couple[:,i],
+            'hours_w': model.sim.labor_w[:,i],
+            'hours_m': model.sim.labor_m[:,i],
+            'cons': model.sim.cons_w[:,i],
+            'wage_w': wage_w[:,i],
+            'wage_m': wage_m[:,i],
+            'earnings_w': y_w[:,i],
+            'earnings_m': y_m[:,i],
+            'BMI_w': Z_w,
+            'BMI_m': Z_m,
+            'init_barg': init_barg
+        })
+
+        
+
+        #collect the data
+        data = pd.concat([data,data_nu[i]] )
+
+
+    #drop if single
+    data= data.drop(data[data.couple==0].index) 
+
+
+    #sort data
+    data = data.sort_values(by =['idx','t'])
+    if to_xl: 
+        data.to_excel(f'{name_xl}.xlsx')
+
+    #create variable
+    #data = create_variable(data)
+
+
+    return data
 
 def create_data(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulated_data'):
     

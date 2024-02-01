@@ -67,7 +67,7 @@ namespace couple {
                         double Kbar_w = par->grid_K_pd[iKw];
                         for (int iKm=0; iKm<par->num_K_pd; iKm++){
                             double Kbar_m = par->grid_K_pd[iKm];
-                            
+
                             // next-period values
                             int idx_next = index::couple(t_next,iP,0,0,0,0,par);
                             double* Vw_next = &sol->Vw_remain_couple[idx_next]; 
