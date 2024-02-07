@@ -435,9 +435,9 @@ namespace couple {
 
                             // Update solutions in list_start_as_couple
                             int bargaining = par->bargaining;
-                            if (t==0){
-                                bargaining = 2; // NASH bargaining in first period
-                            }
+                            //if (t==0){
+                            //    bargaining = 2; // NASH bargaining in first period
+                            //}
                             if(bargaining==1){ // limited commitment
 
                                 bargaining::limited_commitment(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);

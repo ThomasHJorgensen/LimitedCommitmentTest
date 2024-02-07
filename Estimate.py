@@ -24,13 +24,14 @@ def create_data_new(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simu
     data   = pd.DataFrame()
 
     #TODO: save it while simulating
-    wage_w      =  np.exp(model.par.wage_const_w +model.par.wage_K_w* model.sim.Kw)  
+    wage_w      =  np.exp(model.par.wage_const_w +model.par.wage_K_w*model.sim.Kw)  
     y_w         =  wage_w*model.sim.labor_w
     wage_m      =  np.exp(model.par.wage_const_m+model.par.wage_K_m* model.sim.Km)
     y_m         =  wage_m*model.sim.labor_m
     init_barg   =  model.sim.init_Kw > model.sim.init_Km
     Z_w         = 1 #TODO: Include Z values
     Z_m         = 1 #TODO: Include Z values
+
 
     for i in range(start_p, end_p): #use some periods in the middle of the simluation
 
@@ -50,7 +51,12 @@ def create_data_new(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simu
             'earnings_m': y_m[:,i],
             'BMI_w': Z_w,
             'BMI_m': Z_m,
-            'init_barg': init_barg
+            'omega_w':  model.sim.draw_Kw[:,i],
+            'omega_m':  model.sim.draw_Km[:,i],
+            'init_barg': init_barg,
+            'value'    : model.sim.value[:,i],
+            'util' : model.sim.util[:,i],
+            'barganing': model.sim.power[:,i]
         })
 
         

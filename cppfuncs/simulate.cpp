@@ -236,7 +236,13 @@ namespace sim {
                         sim->Kw[it] = MIN(sim->Kw[it],par->max_K); // cannot accumulate more HK than max
                         sim->Km[it] = MIN(sim->Km[it],par->max_K); // cannot accumulate more HK than max
 
-                        bargaining = 2; // NASH in initial period
+                        // bargaining = 2; // NASH in initial period
+                        // The person with higher HK, will get most power initially
+                        power_lag = 0.3;
+                        if (sim->Kw[it]>sim->Km[it]) {
+                            power_lag = 0.7;
+                        } 
+
 
                     } else {
                         A_lag = sim->A[it_1];
@@ -284,7 +290,10 @@ namespace sim {
                         cons = MIN(cons,resources); // cannot borrow. This removes small numerical violations
                         sim->cons_w[it] = cons;
                         sim->cons_m[it] = cons;
-
+                        sim->value[it] = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->V_remain_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
+                        double util_w   = utils::util(sim->cons_w[it],sim->labor_w[it],1.0,woman,par);
+                        double util_m   = utils::util(sim->cons_m[it],sim->labor_m[it],1.0,man,par);
+                        sim->util[it] = power*util_w+(1-power)*util_m;
                         // update end-of-period states
                         sim->A[it] = resources - cons;
                         if(t<par->T-1){
@@ -301,6 +310,7 @@ namespace sim {
 
                         // sim->power_idx[it] = power_idx;
                         sim->power[it] = power;
+                        
 
                     } else { // single
                         
@@ -334,7 +344,6 @@ namespace sim {
                         sim->cons_m[it] = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,cons_single_m,Am_lag,sim->Km[it]);
                         sim->cons_m[it] = MIN(sim->cons_m[it],resources_m); // cannot borrow. This removes small numerical violations
                         
-
                         // update end-of-period states
                         sim->Aw[it] = resources_w - sim->cons_w[it];
                         sim->Am[it] = resources_m - sim->cons_m[it];

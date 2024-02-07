@@ -239,7 +239,7 @@ namespace single {
 
                     sol->labor_m_trans_single[idx] = sol->labor_m_single[idx];
                     sol->cons_m_trans_single[idx] = sol->cons_m_single[idx];
-                    sol->Vm_trans_single[idx] = sol->Vw_single[idx] - par->div_cost;
+                    sol->Vm_trans_single[idx] = sol->Vm_single[idx] - par->div_cost;
 
                 }
             }

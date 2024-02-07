@@ -58,6 +58,9 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         par.wage_K_w = 0.095
         par.wage_K_m = 0.14
+        
+        #par.wage_K_w = 0.095
+        #par.wage_K_m = 0.095
 
         par.lambdaa2 = 1.0 #HK return to work  
  
@@ -68,7 +71,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         
         # wealth
         par.num_A = 50
-        par.max_A = 15.0
+        par.max_A = 30.0
         #par.max_A = 3000.0
         par.max_Aw = par.max_A*par.div_A_share 
         par.max_Am = par.max_A*(1-par.div_A_share )
@@ -77,7 +80,8 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.num_K = 10
         par.max_K = 20.0
 
-        par.sigma_K = 0.5
+        par.sigma_K = 0.1
+        par.sigma_K_init = 1.0
         par.num_shock_K = 5
         
         # bargaining power
@@ -88,12 +92,12 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.max_love = 1.0
 
         par.sigma_love = 0.031  # from Mariage labor supply and the Dynamics of social safety net
-        #par.sigma_love = 0.0
+        #par.sigma_love = 0.0001
         par.num_shock_love = 5 
 
         # simulation
         par.seed = 9210
-        par.simN = 20_000
+        par.simN = 30_000
 
         # bargaining model
         par.bargaining = 1 # 0: no bargaining, full commitment, 1: limited commitment, 2: no commitment, 'Nash' bargaining
@@ -175,12 +179,16 @@ class LimitedCommitmentModelClass(EconModelClass):
         sim.love = np.nan + np.ones(shape_sim)
         sim.Kw = np.nan + np.ones(shape_sim)
         sim.Km = np.nan + np.ones(shape_sim)
+        sim.value = np.nan + np.ones(shape_sim)
+        sim.util = np.nan + np.ones(shape_sim)
 
         # shocks
         np.random.seed(par.seed)
         sim.draw_love = par.sigma_love * np.random.normal(size=shape_sim)
         sim.draw_Kw = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
         sim.draw_Km = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
+        sim.draw_Kw = par.sigma_K*np.random.normal(size=shape_sim)
+        sim.draw_Km = par.sigma_K*np.random.normal(size=shape_sim)
 
         # initial distribution
         sim.init_A = par.grid_A[0] + np.zeros(par.simN)
@@ -191,8 +199,8 @@ class LimitedCommitmentModelClass(EconModelClass):
         sim.init_love = np.zeros(par.simN)
         #TODO: TÆNK OVER DENNE MED INIT, lige nu stor variation for at få variation i initiale barganing
         # det giver en periode med meget højt løn (uden HK) generelt højere løn (med HK). 
-        sim.init_Kw = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=par.simN))
-        sim.init_Km = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=par.simN))
+        sim.init_Kw = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
+        sim.init_Km = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
         #sim.init_Kw = np.random.uniform(low=0.0,high = 2.0,size=par.simN)
         #sim.init_Km = np.random.uniform(low=0.0,high = 2.0,size=par.simN)
 
