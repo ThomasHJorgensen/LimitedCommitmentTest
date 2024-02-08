@@ -278,13 +278,20 @@ namespace bargaining {
                 // optimize
                 y[0] = par->grid_power[iP_max];
                 nlopt_optimize(opt, y, &minf); 
+                double power_est = y[0];
 
                 // destroy optimizer
                 nlopt_destroy(opt);
 
+                // interpolate solutions onto grids
+                int left_point = tools::binary_search(0, par->num_power, par->grid_power, power_est);
+                int delta = idx_couple->idx(1) - idx_couple->idx(0);
                 for (int iP=0; iP<par->num_power; iP++){
                     int idx = idx_couple->idx(iP);
-                    power[idx] = y[0];
+                    for (int i=0;i<num;i++){
+                        list_start_as_couple[i][idx] = tools::interp_1d_index_delta(par->grid_power, par->num_power, list_remain_couple[i], power_est, left_point, delta, idx_couple->idx(0)); 
+                    }
+                    power[idx] = power_est;
                     power_idx[idx] = iP_max; // close to the optimal
                 }
 
@@ -324,7 +331,8 @@ namespace bargaining {
         for (int iP=0; iP<par->num_power; iP++){
             int idx = idx_couple->idx(iP);
 
-            if((Sw[iP]<0.0)|(Sm[iP]<0.0)){
+            // if((Sw[iP]<0.0)|(Sm[iP]<0.0)){
+            if((Sw[iP]+Sm[iP]<0.0)){ // transferable utility
                 for(int i=0;i<num;i++){
                     list_start_as_couple[i][idx] = list_trans_to_single[i];
                 }

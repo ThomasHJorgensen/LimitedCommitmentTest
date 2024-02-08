@@ -5,7 +5,7 @@ import pandas as pd
 import scipy.optimize as optimize
 import statsmodels.api as sm
 
-def create_data_new(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulated_data'):
+def create_data_new(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulated_data',path='output/'):
     
     par = model.par 
     sim = model.sim 
@@ -72,7 +72,7 @@ def create_data_new(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simu
     #sort data
     data = data.sort_values(by =['idx','t'])
     if to_xl: 
-        data.to_excel(f'{name_xl}.xlsx')
+        data.to_excel(f'{path}{name_xl}.xlsx')
 
     #create variable
     #data = create_variable(data)

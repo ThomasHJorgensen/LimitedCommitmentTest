@@ -109,7 +109,8 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # bargaining model
         par.bargaining = 1 # 0: no bargaining, full commitment, 1: limited commitment, 2: no commitment, 'Nash' bargaining
-
+        par.bargaining_init_nash = False # True: Nash bargaining in initial period, else equal to par.bargaining in all periods
+        
         # cpp
         par.threads = 16
 
