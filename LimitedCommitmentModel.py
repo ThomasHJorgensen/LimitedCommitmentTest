@@ -218,10 +218,10 @@ class LimitedCommitmentModelClass(EconModelClass):
         #sim.init_Km = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
         sim.init_Kw = np.random.uniform(low=0.0,high = 2.0,size=par.simN)
         sim.init_Km = np.random.uniform(low=0.0,high = 2.0,size=par.simN)
-        sim.init_Zw = np.zeros(par.simN)
-        sim.init_Zm = np.zeros(par.simN)
+        #sim.init_Zw = np.zeros(par.simN)
+        # sim.init_Zm = np.zeros(par.simN)
 
-        sim.init_distr = np.random.choice(3,par.simN, p =[par.pr_distr_factor*(1-par.pr_distr_factor),par.pr_distr_factor*par.pr_distr_factor+(1-par.pr_distr_factor)*(1-par.pr_distr_factor),par.pr_distr_factor*(1-par.pr_distr_factor)])
+        #sim.init_distr = np.random.choice(3,par.simN, p =[par.pr_distr_factor*(1-par.pr_distr_factor),par.pr_distr_factor*par.pr_distr_factor+(1-par.pr_distr_factor)*(1-par.pr_distr_factor),par.pr_distr_factor*(1-par.pr_distr_factor)])
 
         
         
