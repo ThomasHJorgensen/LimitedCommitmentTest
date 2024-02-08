@@ -235,13 +235,15 @@ namespace sim {
                         sim->Km[it] = sim->init_Km[i];
                         sim->Kw[it] = MIN(sim->Kw[it],par->max_K); // cannot accumulate more HK than max
                         sim->Km[it] = MIN(sim->Km[it],par->max_K); // cannot accumulate more HK than max
-
-                        // bargaining = 2; // NASH in initial period
-                        // The person with higher HK, will get most power initially
-                        power_lag = 0.3;
+                        if (par->bargaining_init_nash) {
+                            bargaining = 2; // NASH in initial period
+                        }
+                        else {
+                            power_lag = 0.3;
                         if (sim->Kw[it]>sim->Km[it]) {
                             power_lag = 0.7;
                         } 
+                        }
 
 
                     } else {
@@ -278,7 +280,8 @@ namespace sim {
                         int idx_sol = index::couple(t,0,0,0,0,0,par);
 
                         // optimal labor supply and consumption
-                        tools::interp_5d_2out(&sim->labor_w[it],&sim->labor_m[it], par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->labor_w_remain_couple[idx_sol],&sol->labor_m_remain_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]);
+                        tools::interp_5d_2out(&sim->labor_w[it],&sim->labor_m[it], par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->labor_w_couple[idx_sol],&sol->labor_m_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]);
+                        //tools::interp_5d_2out(&sim->labor_w[it],&sim->labor_m[it], par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->labor_w_remain_couple[idx_sol],&sol->labor_m_remain_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]);
                         sim->labor_w[it] = MAX(sim->labor_w[it],0); // work between 0 and 1
                         sim->labor_w[it] = MIN(sim->labor_w[it],1); // work between 0 and 1
                         sim->labor_m[it] = MAX(sim->labor_m[it],0); // work between 0 and 1
@@ -286,14 +289,19 @@ namespace sim {
 
 
                         double resources = couple::resources(sim->labor_w[it],sim->labor_m[it],A_lag,sim->Kw[it],sim->Km[it],par); 
-                        double cons = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->cons_w_remain_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
+                        //double cons = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->cons_w_remain_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
+                        double cons = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->cons_w_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
                         cons = MIN(cons,resources); // cannot borrow. This removes small numerical violations
                         sim->cons_w[it] = cons;
                         sim->cons_m[it] = cons;
-                        sim->value[it] = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->V_remain_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
+                        //sim->value[it] = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->V_remain_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
+                        double value_w = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
+                        double value_m = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vm_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
+                        
                         double util_w   = utils::util(sim->cons_w[it],sim->labor_w[it],1.0,woman,par);
                         double util_m   = utils::util(sim->cons_m[it],sim->labor_m[it],1.0,man,par);
                         sim->util[it] = power*util_w+(1-power)*util_m;
+                        sim->value[it] = power*value_w+(1-power)*value_m;
                         // update end-of-period states
                         sim->A[it] = resources - cons;
                         if(t<par->T-1){
