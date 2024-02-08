@@ -71,7 +71,6 @@ class LimitedCommitmentModelClass(EconModelClass):
         
         # wealth
         par.num_A = 50
-        par.num_A = 20
         par.max_A = 15.0
         #par.max_A = 3000.0
         par.max_Aw = par.max_A*par.div_A_share 
@@ -86,8 +85,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.num_shock_K = 5
         
         # bargaining power
-        #par.num_power = 21
-        par.num_power = 11
+        par.num_power = 21
 
         # love/match quality
         par.num_love = 10
