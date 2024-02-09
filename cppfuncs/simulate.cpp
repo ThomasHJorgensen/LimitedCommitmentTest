@@ -235,16 +235,20 @@ namespace sim {
                         sim->Km[it] = sim->init_Km[i];
                         sim->Kw[it] = MIN(sim->Kw[it],par->max_K); // cannot accumulate more HK than max
                         sim->Km[it] = MIN(sim->Km[it],par->max_K); // cannot accumulate more HK than max
+
                         if (par->bargaining_init_nash) {
                             bargaining = 2; // NASH in initial period
                         }
-                        else {
-                            power_lag = 0.3;
-                        if (sim->Kw[it]>sim->Km[it]) {
-                            power_lag = 0.7;
-                        } 
+                        // use initial distribution, to randomize initial barganing pwoer
+                        else if (sim->init_distr[i] == 0)  {
+                            power_lag = sim->init_distr_power_lag[i]; 
                         }
-
+                        else if (sim->init_distr[i] == 1 ) {
+                            power_lag = sim->init_distr_power_lag[i]+0.3;
+                        } 
+                        else {
+                            power_lag = sim->init_distr_power_lag[i]+0.6;
+                        }
 
                     } else {
                         A_lag = sim->A[it_1];
