@@ -29,10 +29,8 @@ def create_data_new(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simu
     wage_m      =  np.exp(model.par.wage_const_m+model.par.wage_K_m* model.sim.Km)
     y_m         =  wage_m*model.sim.labor_m
     init_barg   =  model.sim.init_distr
-    Z_w         = 1 #TODO: Include Z values
-    Z_m         = 1 #TODO: Include Z values
-
-
+    Z_w         =  model.sim.Zw 
+    Z_m         =  model.sim.Zm 
     for i in range(start_p, end_p): #use some periods in the middle of the simluation
 
         # WOMAN
