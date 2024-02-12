@@ -7,7 +7,9 @@ namespace single {
     typedef struct {
         
         double A;
-        double K;             
+        double K;   
+        double Z;
+        double *grid_weight_Z;         
         double *V_next;      
         int gender;  
         double labor; 
@@ -28,11 +30,10 @@ namespace single {
         return par->R*A + after_tax_income;
     }
 
-    double value_of_choice(double cons, double labor,double A, double K, int gender,int t, double* V_next, par_struct* par){
+    double value_of_choice(double cons, double labor, double Z, double A, double K, int gender,int t, double* V_next, double* grid_weight_Z, par_struct* par){
         double d = 1.0; //Divorce
         // flow-utility
-        double Util = utils::util(cons,labor,gender,d,par);
-        
+        double Util = utils::util(cons,labor,gender,d,par)-d*Z;
         // continuation value
         double EVnext = 0.0;
         if(t<par->T-1){
@@ -44,12 +45,16 @@ namespace single {
             // Expected continuation value
             double A_next = resources_single(labor,A,K,gender,par) - cons;
             double Kbar = utils::K_bar(K,labor,t,par);
-
+            // expected Z
             for(int iK_next=0;iK_next<par->num_shock_K;iK_next++){
-                double K_next = Kbar*par->grid_shock_K[iK_next];
-                
-                double interp_next = tools::interp_2d(grid_A,par->grid_K,par->num_A,par->num_K,V_next,A_next,K_next);
-                EVnext += par->grid_weight_K[iK_next] * interp_next;
+                for(int iZ_next=0;iZ_next<par->num_Z;iZ_next++){
+                    int idx_next = index::index3(iZ_next,0,0, par->num_Z,par->num_A,par->num_K); //virker denne?
+                    double K_next = Kbar*par->grid_shock_K[iK_next];
+                    double Znext = iZ_next;
+                    
+                    double interp_next = tools::interp_2d(grid_A,par->grid_K,par->num_A,par->num_K,V_next,A_next,K_next);
+                    EVnext += par->grid_weight_K[iK_next] * grid_weight_Z[iZ_next] *interp_next;
+                }
             }
         }
 
@@ -66,6 +71,8 @@ namespace single {
         int gender = solver_data->gender;
         double A = solver_data->A;
         double K = solver_data->K;
+        double Z = solver_data->Z;
+        double* grid_weight_Z = solver_data->grid_weight_Z ;
         double labor = solver_data->labor;
         double* V_next = solver_data->V_next;
         int t = solver_data->t;
@@ -80,7 +87,7 @@ namespace single {
         }
 
         // return negative value of choice
-        return - value_of_choice(cons,labor,A,K,gender,t,V_next,par) + penalty;
+        return - value_of_choice(cons,labor,Z,A,K,gender,t,V_next,grid_weight_Z,par) + penalty;
 
     }
     double objfunc_single_labor(unsigned n, const double *x, double *grad, void *solver_data_in){
@@ -153,94 +160,103 @@ namespace single {
             nlopt_set_xtol_rel(opt,1.0e-6);
             double minf=0.0;
 
-            int idx_next = index::index3(t+1,0,0,par->T,par->num_A,par->num_K);
+            int idx_next = index::index4(t+1,0,0,0,par->T, par->num_Z,par->num_A,par->num_K);
             int idx_last = 0;
 
             #pragma omp for
             for (int iA=0; iA<par->num_A;iA++){
                 for (int iK=0; iK<par->num_K;iK++){
-                    int idx = index::single(t,iA,iK,par);//index::index3(t,iA,iK,par->T,par->num_A,par->num_K);
+                    for (int iZ=0; iZ<par->num_Z;iZ++){
+                        int idx = index::single(t,iZ,iA,iK,par);//index::index3(t,iA,iK,par->T,par->num_A,par->num_K);
+                        int idx_Z = index::index2(iZ,0,par->num_Z,par->num_Z);
 
-                    // states
-                    double Aw = par->grid_Aw[iA];
-                    double Am = par->grid_Am[iA];
+                        // states
+                        double Aw = par->grid_Aw[iA];
+                        double Am = par->grid_Am[iA];
+                        
+                        double Zw = par->grid_Z[iZ];
+                        double Zm = par->grid_Z[iZ];
 
-                    double Kw = par->grid_K[iK];
-                    double Km = par->grid_K[iK];
+                        double Kw = par->grid_K[iK];
+                        double Km = par->grid_K[iK];
 
-                    // WOMEN
-                    // bounds
-                    lb[0] = 0.0;
-                    ub[0] = 1.0;    
-                    nlopt_set_lower_bounds(opt, lb);
-                    nlopt_set_upper_bounds(opt, ub);
+                        // WOMEN
+                        // bounds
+                        lb[0] = 0.0;
+                        ub[0] = 1.0;    
+                        nlopt_set_lower_bounds(opt, lb);
+                        nlopt_set_upper_bounds(opt, ub);
 
-                    // settings
-                    solver_data->A = Aw;
-                    solver_data->K = Kw;
-                    solver_data->gender = woman;
-                    solver_data->lower = lb;
-                    solver_data->upper = ub;
-                    solver_data->par = par;
-                    solver_data->V_next = &sol->Vw_single[idx_next];
-                    solver_data->t = t;
-                    nlopt_set_min_objective(opt, objfunc_single_labor, solver_data); 
+                        // settings
+                        solver_data->A = Aw;
+                        solver_data->K = Kw;
+                        solver_data->Z = Zw;
+                        solver_data->grid_weight_Z = &par->grid_weight_Z[idx_Z];
+                        solver_data->gender = woman;
+                        solver_data->lower = lb;
+                        solver_data->upper = ub;
+                        solver_data->par = par;
+                        solver_data->V_next = &sol->Vw_single[idx_next];
+                        solver_data->t = t;
+                        nlopt_set_min_objective(opt, objfunc_single_labor, solver_data); 
 
-                    
-                    // optimize
-                    x[0] = 0.5;  
-                    idx_last = -1;
-                    if(iK>0){
-                        idx_last = index::single(t,iA,iK-1,par);
-                    } 
-                    if(idx_last>-1){
-                        x[0] = sol->labor_w_single[idx_last];
+                        
+                        // optimize
+                        x[0] = 0.5;  
+                        idx_last = -1;
+                        if(iK>0){
+                            idx_last = index::single(t,iZ,iA,iK-1,par);
+                        } 
+                        if(idx_last>-1){
+                            x[0] = sol->labor_w_single[idx_last];
+                        }
+                        nlopt_optimize(opt, x, &minf); 
+
+                        // store results
+                        sol->labor_w_single[idx] = x[0];
+                        sol->cons_w_single[idx] = solver_data->cons;
+                        sol->Vw_single[idx] = -minf;
+
+                        sol->labor_w_trans_single[idx] = sol->labor_w_single[idx];
+                        sol->cons_w_trans_single[idx] = sol->cons_w_single[idx];
+                        sol->Vw_trans_single[idx] = sol->Vw_single[idx] - par->div_cost;
+
+                        // MEN
+                        // bounds
+                        lb[0] = 0.0;
+                        ub[0] = 1.0;
+                        nlopt_set_lower_bounds(opt, lb);
+                        nlopt_set_upper_bounds(opt, ub);
+
+                        // settings
+                        solver_data->A = Am;
+                        solver_data->K = Km;
+                        solver_data->Z = Zm;
+                        solver_data->grid_weight_Z = &par->grid_weight_Z[idx_Z];
+                        solver_data->gender = man;
+                        solver_data->lower = lb;
+                        solver_data->upper = ub;
+                        solver_data->par = par;
+                        solver_data->V_next = &sol->Vm_single[idx_next];
+                        solver_data->t = t;
+                        nlopt_set_min_objective(opt, objfunc_single_labor, solver_data);  
+
+                        // optimize
+                        x[0] = 0.5;
+                        if(idx_last>-1){
+                            x[0] = sol->labor_m_single[idx_last];
+                        }
+                        nlopt_optimize(opt, x, &minf); 
+
+                        // store results
+                        sol->labor_m_single[idx] = x[0];
+                        sol->cons_m_single[idx] = solver_data->cons;
+                        sol->Vm_single[idx] = -minf;
+
+                        sol->labor_m_trans_single[idx] = sol->labor_m_single[idx];
+                        sol->cons_m_trans_single[idx] = sol->cons_m_single[idx];
+                        sol->Vm_trans_single[idx] = sol->Vm_single[idx] - par->div_cost;
                     }
-                    nlopt_optimize(opt, x, &minf); 
-
-                    // store results
-                    sol->labor_w_single[idx] = x[0];
-                    sol->cons_w_single[idx] = solver_data->cons;
-                    sol->Vw_single[idx] = -minf;
-
-                    sol->labor_w_trans_single[idx] = sol->labor_w_single[idx];
-                    sol->cons_w_trans_single[idx] = sol->cons_w_single[idx];
-                    sol->Vw_trans_single[idx] = sol->Vw_single[idx] - par->div_cost;
-
-                    // MEN
-                    // bounds
-                    lb[0] = 0.0;
-                    ub[0] = 1.0;
-                    nlopt_set_lower_bounds(opt, lb);
-                    nlopt_set_upper_bounds(opt, ub);
-
-                    // settings
-                    solver_data->A = Am;
-                    solver_data->K = Km;
-                    solver_data->gender = man;
-                    solver_data->lower = lb;
-                    solver_data->upper = ub;
-                    solver_data->par = par;
-                    solver_data->V_next = &sol->Vm_single[idx_next];
-                    solver_data->t = t;
-                    nlopt_set_min_objective(opt, objfunc_single_labor, solver_data);  
-
-                    // optimize
-                    x[0] = 0.5;
-                    if(idx_last>-1){
-                        x[0] = sol->labor_m_single[idx_last];
-                    }
-                    nlopt_optimize(opt, x, &minf); 
-
-                    // store results
-                    sol->labor_m_single[idx] = x[0];
-                    sol->cons_m_single[idx] = solver_data->cons;
-                    sol->Vm_single[idx] = -minf;
-
-                    sol->labor_m_trans_single[idx] = sol->labor_m_single[idx];
-                    sol->cons_m_trans_single[idx] = sol->cons_m_single[idx];
-                    sol->Vm_trans_single[idx] = sol->Vm_single[idx] - par->div_cost;
-
                 }
             }
 

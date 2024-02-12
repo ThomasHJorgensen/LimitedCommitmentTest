@@ -7,7 +7,7 @@
 
 namespace sim {
 
-    double limited_commitment(int t,int idx_sol, double power_lag,double Vw_couple,double Vm_couple,double Vw_single,double Vm_single, double love,double A_lag,double Aw_lag,double Am_lag,double Kw, double Km, sol_struct* sol,par_struct* par){
+    double limited_commitment(int t,int idx_sol, int iZw, int iZm, double power_lag,double Vw_couple,double Vm_couple,double Vw_single,double Vm_single, double love,double A_lag,double Aw_lag,double Am_lag,double Kw, double Km, sol_struct* sol,par_struct* par){
         // check participation constraints
         double power = -1.0; // initialize as divorce
 
@@ -57,9 +57,9 @@ namespace sim {
             for (int iP=0; iP<par->num_power; iP++){ 
                 int idx; 
                 if (flip){
-                    idx = index::couple(t,par->num_power-1 - iP,0,0,0,0,par); 
+                    idx = index::couple(t,iZw, iZm, par->num_power-1 - iP,0,0,0,0,par); 
                 } else {
-                    idx = index::couple(t,iP,0,0,0,0,par); 
+                    idx = index::couple(t, iZw, iZm, iP,0,0,0,0,par); 
                 }
                 V_power_vec[iP] = tools::_interp_4d(par->grid_love,par->grid_A,par->grid_K,par->grid_K, par->num_love,par->num_A,par->num_K,par->num_K, &V_remain_couple[idx],love,A_lag,Kw,Km,j_love,j_A,j_Kw,j_Km);
             }
@@ -90,7 +90,7 @@ namespace sim {
     } // limited_commitment
 
     
-    double nash(int t,int idx_sol, double Vw_single,double Vm_single, double love,double A_lag,double Aw_lag,double Am_lag,double Kw, double Km, sol_struct* sol,par_struct* par){
+    double nash(int t,int idx_sol, int iZw, int iZm, double Vw_single,double Vm_single, double love,double A_lag,double Aw_lag,double Am_lag,double Kw, double Km, sol_struct* sol,par_struct* par){
         
         double power = -1.0; // initialize as divorce
 
@@ -107,7 +107,7 @@ namespace sim {
         int j_Km = tools::binary_search(0,par->num_K,par->grid_K,Km);
         for (int iP=0; iP<par->num_power; iP++){
             // value of remaining a couple. 
-            int idx_sol = index::couple(t,iP,0,0,0,0,par); 
+            int idx_sol = index::couple(t,iZw, iZm,iP,0,0,0,0,par); 
             double Vw_couple,Vm_couple;
             tools::_interp_4d_2out(&Vw_couple,&Vm_couple,par->grid_love,par->grid_A,par->grid_K,par->grid_K, par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_remain_couple[idx_sol],&sol->Vm_remain_couple[idx_sol],love,A_lag,Kw,Km,j_love,j_A,j_Kw,j_Km);
             
@@ -173,15 +173,16 @@ namespace sim {
     } // nash
 
 
-    double update_power(int t, double power_lag, double love,double A_lag,double Aw_lag,double Am_lag,double Kw, double Km, sol_struct* sol, par_struct* par,int bargaining){
+    double update_power(int t, int iZw, int iZm, double power_lag, double love,double A_lag,double Aw_lag,double Am_lag,double Kw, double Km, sol_struct* sol, par_struct* par,int bargaining){
         
         // value of transitioning into singlehood
-        int idx_single = index::single(t,0,0,par);
-        double Vw_single = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,&sol->Vw_trans_single[idx_single],Aw_lag,Kw);
-        double Vm_single = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,&sol->Vm_trans_single[idx_single],Am_lag,Km);
+        int idx_single_w = index::single(t,iZw,0,0,par);
+        int idx_single_m = index::single(t,iZm,0,0,par);
+        double Vw_single = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,&sol->Vw_trans_single[idx_single_w],Aw_lag,Kw);
+        double Vm_single = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,&sol->Vm_trans_single[idx_single_m],Am_lag,Km);
 
         // value of remaining a couple with current power.
-        int idx_sol = index::couple(t,0,0,0,0,0,par); 
+        int idx_sol = index::couple(t,iZw,iZm,0,0,0,0,0,par); 
         double Vw_couple,Vm_couple;
         tools::interp_5d_2out(&Vw_couple,&Vm_couple,par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_remain_couple[idx_sol],&sol->Vm_remain_couple[idx_sol], power_lag,love,A_lag,Kw,Km);
         
@@ -195,12 +196,12 @@ namespace sim {
 
         } else if(bargaining==2){ // NASH
 
-            return nash(t,idx_sol,Vw_single,Vm_single, love,A_lag,Aw_lag,Am_lag,Kw,Km,sol,par);
+            return nash(t,idx_sol,iZw, iZm, Vw_single,Vm_single, love,A_lag,Aw_lag,Am_lag,Kw,Km,sol,par);
             
 
         } else { // limited commitment
 
-            return limited_commitment(t,idx_sol,power_lag,Vw_couple,Vm_couple,Vw_single,Vm_single, love,A_lag,Aw_lag,Am_lag,Kw,Km,sol,par);
+            return limited_commitment(t,idx_sol, iZw, iZm, power_lag,Vw_couple,Vm_couple,Vw_single,Vm_single, love,A_lag,Aw_lag,Am_lag,Kw,Km,sol,par);
             
         } // bargaining check
 
@@ -225,7 +226,6 @@ namespace sim {
                     bool couple_lag = sim->init_couple[i];
                     double power_lag = par->grid_power[sim->init_power_idx[i]];
                     int bargaining = par->bargaining;
-
                     // state variables
                     if (t==0){
                         
@@ -235,6 +235,10 @@ namespace sim {
                         sim->Km[it] = sim->init_Km[i];
                         sim->Kw[it] = MIN(sim->Kw[it],par->max_K); // cannot accumulate more HK than max
                         sim->Km[it] = MIN(sim->Km[it],par->max_K); // cannot accumulate more HK than max
+                        
+                        sim->Zw[it] = sim->init_Zw[i];
+                        sim->Zm[it] = sim->init_Zm[i];
+
 
                         if (par->bargaining_init_nash) {
                             bargaining = 2; // NASH in initial period
@@ -261,12 +265,18 @@ namespace sim {
                         
                     } 
 
+                    int iZw = sim->Zw[it] ;
+                    int iZm = sim->Zm[it];
+                    int idx_Zw = index::index2(0,0,par->num_Z,par->num_Z);
+                    int idx_Zm = index::index2(0,0,par->num_Z,par->num_Z);
                     
+                    double grid_weight_Zw = par->grid_weight_Z[idx_Zw];
+                    double grid_weight_Zm = par->grid_weight_Z[idx_Zm];
                     // first check if they want to remain together and what the bargaining power will be if they do.
                     double power;
                     if (couple_lag) {
 
-                        power = update_power(t,power_lag,sim->love[it],A_lag,Aw_lag,Am_lag,sim->Kw[it],sim->Km[it],sol,par,bargaining);
+                        power = update_power(t,iZw, iZm, power_lag,sim->love[it],A_lag,Aw_lag,Am_lag,sim->Kw[it],sim->Km[it],sol,par,bargaining);
 
                         if (power < 0.0) { // divorce is coded as -1
                             sim->couple[it] = false;
@@ -281,7 +291,7 @@ namespace sim {
 
                     // update behavior
                     if (sim->couple[it]){
-                        int idx_sol = index::couple(t,0,0,0,0,0,par);
+                        int idx_sol = index::couple(t,iZw,iZm,0,0,0,0,0,par);
 
                         // optimal labor supply and consumption
                         tools::interp_5d_2out(&sim->labor_w[it],&sim->labor_m[it], par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->labor_w_couple[idx_sol],&sol->labor_m_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]);
@@ -314,6 +324,14 @@ namespace sim {
                             sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) * sim->draw_Km[it1];
                             sim->Kw[it1] = MIN(sim->Kw[it1],par->max_K); // cannot accumulate more HK than max
                             sim->Km[it1] = MIN(sim->Km[it1],par->max_K); // cannot accumulate more HK than max
+                            sim->Zw[it1] = sim->Zw[it] ;
+                            if (grid_weight_Zw<sim->draw_Zw[it]) {
+                                sim->Zw[it1] =1.0-sim->Zw[it];
+                            }
+                            sim->Zm[it1] = sim->Zm[it] ;
+                            if (grid_weight_Zm<sim->draw_Zm[it]) {
+                                sim->Zm[it1] =1.0-sim->Zm[it];
+                            }
                         }
 
                         // in case of divorce
@@ -327,16 +345,17 @@ namespace sim {
                     } else { // single
                         
                         // pick relevant solution for single, depending on whether just became single
-                        int idx_sol_single = index::single(t,0,0,par); 
-                        double *labor_single_w = &sol->labor_w_trans_single[idx_sol_single];
-                        double *cons_single_w = &sol->cons_w_trans_single[idx_sol_single];
-                        double *labor_single_m = &sol->labor_m_trans_single[idx_sol_single];
-                        double *cons_single_m = &sol->cons_m_trans_single[idx_sol_single];
+                        int idx_sol_single_w = index::single(t,iZw,0,0,par); 
+                        int idx_sol_single_m = index::single(t,iZm,0,0,par); 
+                        double *labor_single_w = &sol->labor_w_trans_single[idx_sol_single_w];
+                        double *cons_single_w = &sol->cons_w_trans_single[idx_sol_single_w];
+                        double *labor_single_m = &sol->labor_m_trans_single[idx_sol_single_m];
+                        double *cons_single_m = &sol->cons_m_trans_single[idx_sol_single_m];
                         if (power_lag<0){
-                            labor_single_w = &sol->labor_w_single[idx_sol_single];
-                            cons_single_w = &sol->cons_w_single[idx_sol_single];
-                            labor_single_m = &sol->labor_m_single[idx_sol_single];
-                            cons_single_m = &sol->cons_m_single[idx_sol_single];
+                            labor_single_w = &sol->labor_w_single[idx_sol_single_w];
+                            cons_single_w = &sol->cons_w_single[idx_sol_single_w];
+                            labor_single_m = &sol->labor_m_single[idx_sol_single_m];
+                            cons_single_m = &sol->cons_m_single[idx_sol_single_m];
                         } 
 
                         // optimal consumption and labor supply [could be smarter about this interpolation]
@@ -366,6 +385,14 @@ namespace sim {
                             sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) * sim->draw_Km[it1];
                             sim->Kw[it1] = MIN(sim->Kw[it1],par->max_K); // cannot accumulate more HK than max
                             sim->Km[it1] = MIN(sim->Km[it1],par->max_K); // cannot accumulate more HK than max
+                            sim->Zw[it1] = sim->Zw[it] ;
+                            if (grid_weight_Zw<sim->draw_Zw[it]) {
+                                sim->Zw[it1] =1.0-sim->Zw[it];
+                            }
+                            sim->Zm[it1] = sim->Zm[it] ;
+                            if (grid_weight_Zm<sim->draw_Zm[it]) {
+                                sim->Zm[it1] =1.0-sim->Zm[it];
+                            }
                         }
 
                         sim->power[it] = -1.0;

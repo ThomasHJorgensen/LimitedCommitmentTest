@@ -129,8 +129,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         self.setup_grids()
         
         # singles
-        shape_single = (par.T,par.num_A,par.num_K)                        # single states: T and assets
-        #shape_single = (par.T,par.num_divorce_shock, par.num_divorce_shock,par.num_A,par.num_K)                        # single states: T and assets
+        shape_single = (par.T, par.num_Z,par.num_A,par.num_K)                        # single states: T and assets
         sol.Vw_single = np.nan + np.ones(shape_single)
         sol.Vm_single = np.nan + np.ones(shape_single)      
         sol.labor_w_single = np.nan + np.ones(shape_single)     # labor supply, single women
@@ -146,8 +145,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         sol.cons_m_trans_single = np.nan + np.ones(shape_single)     # consumption, single men
        
         # couples
-        shape_couple = (par.T,par.num_power,par.num_love,par.num_A,par.num_K,par.num_K)     # states when couple: T, assets, power, love
-        #shape_couple = (par.T,par.num_divorce_shock, par.num_divorce_shock,par.num_power,par.num_love,par.num_A,par.num_K,par.num_K)     # states when couple: T, assets, power, love
+        shape_couple = (par.T,par.num_Z, par.num_Z,par.num_power,par.num_love,par.num_A,par.num_K,par.num_K)     # states when couple: T, assets, power, love
         sol.Vw_couple = np.nan + np.ones(shape_couple) # value of starting as couple
         sol.Vm_couple = np.nan + np.ones(shape_couple)
         sol.labor_w_couple = np.nan + np.ones(shape_couple)
@@ -167,8 +165,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         sol.power = np.zeros(shape_couple)   
 
         # post-decision pre-computation
-        shape_pd = (par.num_power,par.num_love,par.num_A_pd,par.num_K_pd,par.num_K_pd)    
-        #shape_pd = (par.num_divorce_shock, par.num_divorce_shock, par.num_power,par.num_love,par.num_A_pd,par.num_K_pd,par.num_K_pd)     
+        shape_pd = (par.num_Z, par.num_Z, par.num_power,par.num_love,par.num_A_pd,par.num_K_pd,par.num_K_pd)     
         sol.EVw_pd = np.nan + np.ones(shape_pd)
         sol.EVm_pd = np.nan + np.ones(shape_pd)                           
 
@@ -211,14 +208,11 @@ class LimitedCommitmentModelClass(EconModelClass):
         sim.init_couple = np.ones(par.simN,dtype=np.bool_)
         sim.init_power_idx = par.num_power//2 * np.ones(par.simN,dtype=np.int_)
         sim.init_love = np.zeros(par.simN)
-        #TODO: TÆNK OVER DENNE MED INIT, lige nu stor variation for at få variation i initiale barganing
-        # det giver en periode med meget højt løn (uden HK) generelt højere løn (med HK). 
-        #sim.init_Kw = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
-        #sim.init_Km = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
-        sim.init_Kw = np.random.uniform(low=0.0,high = 2.0,size=par.simN)
-        sim.init_Km = np.random.uniform(low=0.0,high = 2.0,size=par.simN)
+        sim.init_Kw = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
+        sim.init_Km = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
         sim.init_Zw = np.zeros(par.simN)
         sim.init_Zm = np.zeros(par.simN)
+
 
         sim.init_distr = np.random.choice(3,par.simN, p =[par.pr_distr_factor*(1-par.pr_distr_factor),par.pr_distr_factor*par.pr_distr_factor+(1-par.pr_distr_factor)*(1-par.pr_distr_factor),par.pr_distr_factor*(1-par.pr_distr_factor)])
         sim.init_distr_power_lag = np.random.uniform(low=0.0, high =0.4, size=par.simN)
@@ -264,9 +258,9 @@ class LimitedCommitmentModelClass(EconModelClass):
             par.grid_shock_K,par.grid_weight_K = quadrature.log_normal_gauss_hermite(par.sigma_K,par.num_shock_K)
 
         #divorce utility grid
-        par.num_divorce_shock = 2 #high or low bmi
+        par.num_Z = 2 #high or low bmi
         par.grid_Z = np.array([0,1])
-        par.pr_zplus = np.array([[1-par.pr_z,par.pr_z],[par.pr_z, 1-par.pr_z]])
+        par.grid_weight_Z = np.array([[1-par.pr_z,par.pr_z],[par.pr_z, 1-par.pr_z]])
 
         #initially distrbution factor
         par.num_distr_factor = 3 #high or low bmi
