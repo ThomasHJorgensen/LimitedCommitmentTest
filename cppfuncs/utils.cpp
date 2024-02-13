@@ -55,7 +55,7 @@ namespace utils {
         if (par->do_HK) {
             HK = (1.0-par->K_depre)*K + par->lambdaa2*labor;
         }
-        return HK;
+        return HK/100;
     }
 
 }

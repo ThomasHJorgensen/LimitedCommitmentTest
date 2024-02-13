@@ -53,11 +53,11 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.kappa2 = 0.185 #progression of the tax system from Heathcote et al
         par.kappa2 = 0.0 #progression of the tax system from Heathcote et al
 
-        par.wage_const_w = 1.7
-        par.wage_const_m = 1.7
+        par.wage_const_w = 0.9
+        par.wage_const_m = 1.1
 
-        par.wage_K_w = 0.095
-        par.wage_K_m = 0.14
+        par.wage_K_w = 0.8
+        par.wage_K_m = 1.2
         
         #par.wage_K_w = 0.095
         #par.wage_K_m = 0.095
