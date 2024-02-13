@@ -49,7 +49,8 @@ namespace utils {
 
     double K_bar(double K, double labor, int t, par_struct* par){
         double tt = t;
-        double HK = par->lambdaa2*(0.7*(tt+1)-0.02*pow(tt+1,2));
+        //double HK = par->lambdaa2*(0.7*(tt+1)-0.02*pow(tt+1,2));
+        double HK = par->lambdaa2*(0.7*(tt+20)-0.002*pow(tt+20,2));
         //double HK = par->lambdaa2*(0.7*(tt+1));
         if (par->do_HK) {
             HK = (1.0-par->K_depre)*K + par->lambdaa2*labor;

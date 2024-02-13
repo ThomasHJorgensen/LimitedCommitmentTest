@@ -103,7 +103,7 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # simulation
         par.seed = 9210
-        par.simN = 30_000
+        par.simN = 20_000
 
         # bargaining model
         par.bargaining = 1 # 0: no bargaining, full commitment, 1: limited commitment, 2: no commitment, 'Nash' bargaining
@@ -255,7 +255,14 @@ class LimitedCommitmentModelClass(EconModelClass):
             par.grid_shock_K,par.grid_weight_K = np.array([0.0]),np.array([1.0])
 
         else:
-            par.grid_shock_K,par.grid_weight_K = quadrature.log_normal_gauss_hermite(par.sigma_K,par.num_shock_K)
+            if par.do_HK:
+                #if do HK, permanent wage shock
+                par.grid_shock_K,par.grid_weight_K = quadrature.log_normal_gauss_hermite(par.sigma_K,par.num_shock_K)
+                par.grid_shock_K_temp = np.zeros(par.num_shock_K)
+            else:
+                #if not HK temporary wage shock
+                par.grid_shock_K_temp,par.grid_weight_K = quadrature.normal_gauss_hermite(par.sigma_K,par.num_shock_K)
+                par.grid_shock_K = np.ones(par.num_shock_K)
 
         #divorce utility grid
         par.num_Z = 2 #high or low bmi

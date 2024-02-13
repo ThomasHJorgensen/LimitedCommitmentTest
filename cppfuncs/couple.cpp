@@ -89,12 +89,12 @@ namespace couple {
 
                                             int jKw = 0;
                                             for (int iKw_next=0;iKw_next<par->num_shock_K;iKw_next++){
-                                                double Kw_next = Kbar_w*par->grid_shock_K[iKw_next];
+                                                double Kw_next = Kbar_w*par->grid_shock_K[iKw_next]+par->grid_shock_K_temp[iKw_next];
                                                 jKw = tools::binary_search(jKw,par->num_K,par->grid_K,Kw_next);
                                                 
                                                 int jKm = 0;
                                                 for (int iKm_next=0;iKm_next<par->num_shock_K;iKm_next++){
-                                                    double Km_next = Kbar_m*par->grid_shock_K[iKm_next];
+                                                    double Km_next = Kbar_m*par->grid_shock_K[iKm_next]+par->grid_shock_K_temp[iKm_next];
                                                     jKm = tools::binary_search(jKm,par->num_K,par->grid_K,Km_next);
                                                     
                                                     int jL = 0;

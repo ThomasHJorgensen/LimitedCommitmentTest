@@ -49,7 +49,7 @@ namespace single {
             for(int iK_next=0;iK_next<par->num_shock_K;iK_next++){
                 for(int iZ_next=0;iZ_next<par->num_Z;iZ_next++){
                     int idx_next = index::index3(iZ_next,0,0, par->num_Z,par->num_A,par->num_K); //virker denne?
-                    double K_next = Kbar*par->grid_shock_K[iK_next];
+                    double K_next = Kbar*par->grid_shock_K[iK_next]+par->grid_shock_K_temp[iK_next];
                     double Znext = iZ_next;
                     
                     double interp_next = tools::interp_2d(grid_A,par->grid_K,par->num_A,par->num_K,V_next,A_next,K_next);
