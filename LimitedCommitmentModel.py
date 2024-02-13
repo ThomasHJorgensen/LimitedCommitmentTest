@@ -208,10 +208,15 @@ class LimitedCommitmentModelClass(EconModelClass):
         sim.init_couple = np.ones(par.simN,dtype=np.bool_)
         sim.init_power_idx = par.num_power//2 * np.ones(par.simN,dtype=np.int_)
         sim.init_love = np.zeros(par.simN)
-        sim.init_Kw = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
-        sim.init_Km = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
-        sim.init_Zw = np.zeros(par.simN)
-        sim.init_Zm = np.zeros(par.simN)
+        
+        sim.init_Kw = np.random.uniform(low=0.0, high =0.2,size=shape_sim)
+        sim.init_Km = np.random.uniform(low=0.0, high =0.2,size=shape_sim)
+        #sim.init_Kw = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
+        #sim.init_Km = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
+        #sim.init_Zw = np.zeros(par.simN)
+        #sim.init_Zm = np.zeros(par.simN)
+        sim.init_Zw = np.random_choice(2,par.simN)
+        sim.init_Zm = np.random_choice(2,par.simN)
 
 
         sim.init_distr = np.random.choice(3,par.simN, p =[par.pr_distr_factor*(1-par.pr_distr_factor),par.pr_distr_factor*par.pr_distr_factor+(1-par.pr_distr_factor)*(1-par.pr_distr_factor),par.pr_distr_factor*(1-par.pr_distr_factor)])
