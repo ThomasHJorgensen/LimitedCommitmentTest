@@ -13,8 +13,8 @@ def create_data_new(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simu
     #update stockastic elements.
     shape_sim = (par.simN,par.T)
     sim.draw_love = par.sigma_love * np.random.normal(size=shape_sim)
-    sim.draw_Kw = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
-    sim.draw_Km = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
+    sim.draw_Kw = par.sigma_K * np.random.normal(size=shape_sim)
+    sim.draw_Km = par.sigma_K * np.random.normal(size=shape_sim)
 
     #simulate the data
     model.simulate()
@@ -54,7 +54,8 @@ def create_data_new(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simu
             'init_barg': init_barg,
             'value'    : model.sim.value[:,i],
             'util' : model.sim.util[:,i],
-            'barganing': model.sim.power[:,i]
+            'barganing': model.sim.power[:,i],
+            'Love': model.sim.love[:,i]
         })
 
         
@@ -64,7 +65,7 @@ def create_data_new(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simu
 
 
     #drop if single
-    data= data.drop(data[data.couple==0].index) 
+    #data= data.drop(data[data.couple==0].index)  # det virker som om denne ikke virker, jeg gør det i STATA nu! 
 
 
     #sort data
@@ -174,7 +175,7 @@ def create_data(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulate
 
 
     #drop if single
-    data= data.drop(data[data.couple==0].index) #few obs dropped?
+    #data= data.drop(data[data.couple==0].index) 
 
 
     #sort data

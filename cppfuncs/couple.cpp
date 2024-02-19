@@ -71,10 +71,24 @@ namespace couple {
                             jA = tools::binary_search(jA,par->num_A,par->grid_A,A_next);
 
                             for (int iKw=0; iKw<par->num_K_pd; iKw++){
-                                double Kbar_w = par->grid_K_pd[iKw];
+                                
+                                double Kbar_w = 0.0;
+                                if (par->do_HK){
+                                    Kbar_w = par->grid_K_pd[iKw];
+                                }
+                                else {
+                                    Kbar_w = utils::K_bar(0.0,0.0,t_next,par);
+                                }
                                 for (int iKm=0; iKm<par->num_K_pd; iKm++){
-                                    double Kbar_m = par->grid_K_pd[iKm];
-
+                                        
+                                    double Kbar_m = 0.0;
+                                    if (par->do_HK){
+                                        Kbar_m = par->grid_K_pd[iKm];
+                                    }
+                                    else {
+                                        Kbar_m = utils::K_bar(0.0,0.0,t_next,par);
+                                    }
+                            
                                     
 
                                     // loop through shocks
@@ -144,7 +158,13 @@ namespace couple {
 
             // interpolate next-period expected value (pre-computed) wrt. Anext,Kwbar,Kmbar (love is on grid)
             double EVw_plus,EVm_plus;
-            tools::interp_3d_2out(&EVw_plus,&EVm_plus, par->grid_A_pd,par->grid_K_pd,par->grid_K_pd, par->num_A_pd,par->num_K_pd,par->num_K_pd, EVw_next,EVm_next ,A_next,Kbar_w,Kbar_m);
+            if (par->do_HK){
+                tools::interp_3d_2out(&EVw_plus,&EVm_plus, par->grid_A_pd,par->grid_K_pd,par->grid_K_pd, par->num_A_pd,par->num_K_pd,par->num_K_pd, EVw_next,EVm_next ,A_next,Kbar_w,Kbar_m);
+            }
+            else {
+                //NO hk; hk is on grid 
+                tools::interp_1d_2out(par->grid_A_pd,par->num_A_pd,EVw_next,EVm_next,A_next,&EVw_plus,&EVm_plus);
+            }
 
             Vw[0] += EVw_plus;
             Vm[0] += EVm_plus;

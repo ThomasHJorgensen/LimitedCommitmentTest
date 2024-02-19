@@ -33,7 +33,7 @@ namespace single {
     double value_of_choice(double cons, double labor, double Z, double A, double K, int gender,int t, double* V_next, double* grid_weight_Z, par_struct* par){
         double d = 1.0; //Divorce
         // flow-utility
-        double Util = utils::util(cons,labor,gender,d,par)-d*Z;
+        double Util = utils::util(cons,labor,gender,d,par)-Z;
         // continuation value
         double EVnext = 0.0;
         if(t<par->T-1){
@@ -52,7 +52,7 @@ namespace single {
                     double K_next = Kbar*par->grid_shock_K[iK_next]+par->grid_shock_K_temp[iK_next];
                     double Znext = iZ_next;
                     
-                    double interp_next = tools::interp_2d(grid_A,par->grid_K,par->num_A,par->num_K,V_next,A_next,K_next);
+                    double interp_next = tools::interp_2d(grid_A,par->grid_K,par->num_A,par->num_K,&V_next[idx_next],A_next,K_next);
                     EVnext += par->grid_weight_K[iK_next] * grid_weight_Z[iZ_next] *interp_next;
                 }
             }

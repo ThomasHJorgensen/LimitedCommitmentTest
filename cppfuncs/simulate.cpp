@@ -320,10 +320,12 @@ namespace sim {
                         sim->A[it] = resources - cons;
                         if(t<par->T-1){
                             sim->love[it1] = sim->love[it] + sim->draw_love[it1];
-                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) * sim->draw_Kw[it1];
-                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) * sim->draw_Km[it1];
+                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) + sim->draw_Kw[it1];
+                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) + sim->draw_Km[it1];
                             sim->Kw[it1] = MIN(sim->Kw[it1],par->max_K); // cannot accumulate more HK than max
                             sim->Km[it1] = MIN(sim->Km[it1],par->max_K); // cannot accumulate more HK than max
+                            sim->Kw[it1] = MAX(sim->Kw[it1],0); // cannot accumulate less HK than zero
+                            sim->Km[it1] = MAX(sim->Km[it1],0); // cannot accumulate less HK than zero
                             sim->Zw[it1] = sim->Zw[it] ;
                             if (grid_weight_Zw<sim->draw_Zw[it]) {
                                 sim->Zw[it1] =1.0-sim->Zw[it];
@@ -381,16 +383,18 @@ namespace sim {
                     
 
                         if(t<par->T-1){
-                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) * sim->draw_Kw[it1];
-                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) * sim->draw_Km[it1];
+                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) + sim->draw_Kw[it1];
+                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) + sim->draw_Km[it1];
                             sim->Kw[it1] = MIN(sim->Kw[it1],par->max_K); // cannot accumulate more HK than max
                             sim->Km[it1] = MIN(sim->Km[it1],par->max_K); // cannot accumulate more HK than max
+                            sim->Kw[it1] = MAX(sim->Kw[it1],0); // cannot accumulate less HK than zero
+                            sim->Km[it1] = MAX(sim->Km[it1],0); // cannot accumulate less HK than zero
                             sim->Zw[it1] = sim->Zw[it] ;
-                            if (grid_weight_Zw<sim->draw_Zw[it]) {
+                            if (par->pr_z > sim->draw_Zw[it]) {
                                 sim->Zw[it1] =1.0-sim->Zw[it];
                             }
                             sim->Zm[it1] = sim->Zm[it] ;
-                            if (grid_weight_Zm<sim->draw_Zm[it]) {
+                            if (par->pr_z > sim->draw_Zm[it]) {
                                 sim->Zm[it1] =1.0-sim->Zm[it];
                             }
                         }

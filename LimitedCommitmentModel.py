@@ -51,7 +51,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         # wage process
         par.kappa1 = 0.3 #proportionality of the tax system
         par.kappa2 = 0.185 #progression of the tax system from Heathcote et al
-        par.kappa2 = 0.0 #progression of the tax system from Heathcote et al
+        #par.kappa2 = 0.0 #progression of the tax system from Heathcote et al
 
         par.wage_const_w = 0.9
         par.wage_const_m = 1.1
@@ -62,7 +62,9 @@ class LimitedCommitmentModelClass(EconModelClass):
         #par.wage_K_w = 0.095
         #par.wage_K_m = 0.095
 
-        par.lambdaa2 = 1.0 #HK return to work  
+        par.lambdaa2 = 5.0 #HK return to work  
+        par.lambdaa3 = 0.005
+        par.lambdaa4 = 0.00005
  
         par.K_depre = 0.1
         
@@ -78,7 +80,7 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # human capital
         par.num_K = 10
-        par.max_K = 20.0
+        par.max_K = 2.0
 
         par.sigma_K = 0.1
         par.sigma_K_init = 1.0
@@ -194,10 +196,10 @@ class LimitedCommitmentModelClass(EconModelClass):
         # shocks
         np.random.seed(par.seed)
         sim.draw_love = par.sigma_love * np.random.normal(size=shape_sim)
-        sim.draw_Kw = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
-        sim.draw_Km = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
-        #sim.draw_Kw = par.sigma_K*np.random.normal(size=shape_sim)
-        #sim.draw_Km = par.sigma_K*np.random.normal(size=shape_sim)
+        #sim.draw_Kw = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
+        #sim.draw_Km = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
+        sim.draw_Kw = par.sigma_K*np.random.normal(size=shape_sim)
+        sim.draw_Km = par.sigma_K*np.random.normal(size=shape_sim)
         sim.draw_Zw = np.random.uniform(size=shape_sim)
         sim.draw_Zm = np.random.uniform(size=shape_sim) 
 
@@ -268,6 +270,7 @@ class LimitedCommitmentModelClass(EconModelClass):
                 #if not HK temporary wage shock
                 par.grid_shock_K_temp,par.grid_weight_K = quadrature.normal_gauss_hermite(par.sigma_K,par.num_shock_K)
                 par.grid_shock_K = np.ones(par.num_shock_K)
+                
 
         #divorce utility grid
         par.num_Z = 2 #high or low bmi
@@ -281,7 +284,11 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # post-decision states
         par.grid_A_pd = nonlinspace(0.0,par.max_A,par.num_A_pd,1.1)       # asset grid
-        par.grid_K_pd = nonlinspace(0.0,par.max_K,par.num_K_pd,1.1)       # human capital grid
+        if par.do_HK: 
+            par.grid_K_pd = nonlinspace(0.0,par.max_K,par.num_K_pd,1.1)       # human capital grid
+        else: 
+            par.num_K_pd = 1
+            par.grid_K_pd = np.array([1.0])
 
 
     def solve(self):
