@@ -22,7 +22,7 @@ namespace utils {
 
         double C_public = equiv_scale(cons, d);
         //double util_labor = -(pow(labor,gamma2))/(gamma2);
-        double util_cons = (pow((C_public*exp(gamma2 * (labor))),1-gamma1))/(1-gamma1);
+        double util_cons = (pow((C_public*exp(gamma2 * (labor))),1.0-gamma1))/(1.0-gamma1);
         double util_labor = -(pow(labor,gamma3))/(gamma3);
         return util_labor + util_cons;
         
@@ -52,7 +52,7 @@ namespace utils {
         //double HK = par->lambdaa2*(0.7*(tt+1)-0.02*pow(tt+1,2));
         //double HK = par->lambdaa2*(0.7*(tt+20)-0.002*pow(tt+20,2));
         
-        double HK = par->lambdaa2*(par->lambdaa3*(tt+20)-par->lambdaa4*pow(tt+20,2));
+        double HK = par->lambdaa2*(par->lambdaa3*(tt+20.0)-par->lambdaa4*pow(tt+20.0,2.0));
         //double HK = par->lambdaa2*(0.7*(tt+1));
         if (par->do_HK) {
             HK = (1.0-par->K_depre)*K + par->lambdaa2*labor;

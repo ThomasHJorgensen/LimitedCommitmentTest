@@ -48,9 +48,10 @@ namespace single {
             // expected Z
             for(int iK_next=0;iK_next<par->num_shock_K;iK_next++){
                 for(int iZ_next=0;iZ_next<par->num_Z;iZ_next++){
-                    int idx_next = index::index3(iZ_next,0,0, par->num_Z,par->num_A,par->num_K); //virker denne?
+
+                    int idx_next = index::index4(t+1,iZ_next,0,0,par->T, par->num_Z,par->num_A,par->num_K);
                     double K_next = Kbar*par->grid_shock_K[iK_next]+par->grid_shock_K_temp[iK_next];
-                    double Znext = iZ_next;
+                    //double Znext = iZ_next;
                     
                     double interp_next = tools::interp_2d(grid_A,par->grid_K,par->num_A,par->num_K,&V_next[idx_next],A_next,K_next);
                     EVnext += par->grid_weight_K[iK_next] * grid_weight_Z[iZ_next] *interp_next;
@@ -125,8 +126,8 @@ namespace single {
         nlopt_set_lower_bounds(opt, lb);
         nlopt_set_upper_bounds(opt, ub);
 
-        nlopt_set_ftol_rel(opt,1.0e-5);
-        nlopt_set_xtol_rel(opt,1.0e-5);
+        nlopt_set_ftol_rel(opt,1.0e-8);
+        nlopt_set_xtol_rel(opt,1.0e-6);
 
         
         nlopt_set_min_objective(opt, objfunc_single_cons, solver_data); 
@@ -160,7 +161,7 @@ namespace single {
             nlopt_set_xtol_rel(opt,1.0e-6);
             double minf=0.0;
 
-            int idx_next = index::index4(t+1,0,0,0,par->T, par->num_Z,par->num_A,par->num_K);
+            //int idx_next = index::index4(t+1,0,0,0,par->T, par->num_Z,par->num_A,par->num_K);
             int idx_last = 0;
 
             #pragma omp for
@@ -196,7 +197,8 @@ namespace single {
                         solver_data->lower = lb;
                         solver_data->upper = ub;
                         solver_data->par = par;
-                        solver_data->V_next = &sol->Vw_single[idx_next];
+                        //solver_data->V_next = &sol->Vw_single[idx_next];
+                        solver_data->V_next = sol->Vw_single;
                         solver_data->t = t;
                         nlopt_set_min_objective(opt, objfunc_single_labor, solver_data); 
 
@@ -237,7 +239,8 @@ namespace single {
                         solver_data->lower = lb;
                         solver_data->upper = ub;
                         solver_data->par = par;
-                        solver_data->V_next = &sol->Vm_single[idx_next];
+                        //solver_data->V_next = &sol->Vm_single[idx_next];
+                        solver_data->V_next = sol->Vm_single;
                         solver_data->t = t;
                         nlopt_set_min_objective(opt, objfunc_single_labor, solver_data);  
 

@@ -58,9 +58,6 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         par.wage_K_w = 0.8
         par.wage_K_m = 1.2
-        
-        #par.wage_K_w = 0.095
-        #par.wage_K_m = 0.095
 
         par.lambdaa2 = 5.0 #HK return to work  
         par.lambdaa3 = 0.005
@@ -72,8 +69,8 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.T = 2
         
         # wealth
-        par.num_A = 50
-        par.max_A = 15.0
+        par.num_A = 80
+        par.max_A = 100.0
         #par.max_A = 3000.0
         par.max_Aw = par.max_A*par.div_A_share 
         par.max_Am = par.max_A*(1-par.div_A_share )
@@ -270,11 +267,11 @@ class LimitedCommitmentModelClass(EconModelClass):
                 #if not HK temporary wage shock
                 par.grid_shock_K_temp,par.grid_weight_K = quadrature.normal_gauss_hermite(par.sigma_K,par.num_shock_K)
                 par.grid_shock_K = np.ones(par.num_shock_K)
-                
+
 
         #divorce utility grid
         par.num_Z = 2 #high or low bmi
-        par.grid_Z = np.array([0,1])
+        par.grid_Z = np.array([0.0,1.0])
         par.grid_weight_Z = np.array([[1-par.pr_z,par.pr_z],[par.pr_z, 1-par.pr_z]])
 
         #initially distrbution factor

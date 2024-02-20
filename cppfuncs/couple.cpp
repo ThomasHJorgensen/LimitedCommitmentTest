@@ -205,7 +205,7 @@ namespace couple {
         double saving = resources(labor_w,labor_m,A,Kw,Km,par) - cons;
         if(saving<0.0){ // budget constraint: no borrowing
             penalty += 1000.0*saving*saving;
-            cons -= saving; // TODO: is this the right way to do it?
+            cons -= saving; 
         }
         double low_cons = 1.0e-6;
         if (cons <low_cons) {
@@ -276,8 +276,8 @@ namespace couple {
             nlopt_set_lower_bounds(opt, lb);
             nlopt_set_upper_bounds(opt, ub);
 
-            nlopt_set_ftol_rel(opt,1.0e-5);
-            nlopt_set_xtol_rel(opt,1.0e-5);
+            nlopt_set_ftol_rel(opt,1.0e-8);
+            nlopt_set_xtol_rel(opt,1.0e-6);
 
             
             nlopt_set_min_objective(opt, objfunc_cons, solver_data); 
@@ -346,8 +346,8 @@ namespace couple {
         solver_data->Vw = &Vw; 
         solver_data->Vm = &Vm; 
         nlopt_set_min_objective(opt, objfunc_labor, solver_data);
-        nlopt_set_ftol_rel(opt,1.0e-7);
-        nlopt_set_xtol_rel(opt,1.0e-5);
+        nlopt_set_ftol_rel(opt,1.0e-8);
+        nlopt_set_xtol_rel(opt,1.0e-6);
         nlopt_set_maxeval(opt,250); // ensures finite termination
 
         // optimize
