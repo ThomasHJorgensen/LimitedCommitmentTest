@@ -59,25 +59,32 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.wage_K_w = 0.8
         par.wage_K_m = 1.2
 
-        par.lambdaa2 = 5.0 #HK return to work  
-        par.lambdaa3 = 0.005
-        par.lambdaa4 = 0.00005
+        par.lambdaa2 = 1.0 #HK return to work  
+        par.lambdaa2 = 0.7 #HK return to work  
+        #par.lambdaa2_HK = 0.09  #HK return to work  
+        
+        par.lambdaa2_HK = 0.5  #HK return to work  
+        par.lambdaa3 = 0.009
+        par.lambdaa4 = 0.00009
  
         par.K_depre = 0.1
+        par.K_depre = 0.2
         
         # state variables
         par.T = 2
         
         # wealth
         par.num_A = 80
-        par.max_A = 100.0
-        #par.max_A = 3000.0
+        par.max_A = 60.0
+        
+        par.num_A = 40
+        par.max_A = 15.0
         par.max_Aw = par.max_A*par.div_A_share 
         par.max_Am = par.max_A*(1-par.div_A_share )
 
         # human capital
         par.num_K = 10
-        par.max_K = 2.0
+        par.max_K = 1.0
 
         par.sigma_K = 0.1
         par.sigma_K_init = 1.0
@@ -88,10 +95,9 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # love/match quality
         par.num_love = 10
-        par.max_love = 1.0
+        par.max_love = 0.7
 
         par.sigma_love = 0.031  # from Mariage labor supply and the Dynamics of social safety net
-        #par.sigma_love = 0.0001
         par.num_shock_love = 5 
 
         #divorce quality
@@ -102,7 +108,7 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # simulation
         par.seed = 9210
-        par.simN = 20_000
+        par.simN = 10_000
 
         # bargaining model
         par.bargaining = 1 # 0: no bargaining, full commitment, 1: limited commitment, 2: no commitment, 'Nash' bargaining
@@ -112,8 +118,9 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.threads = 16
 
         # post-decision states
-        par.num_A_pd = 80
-        par.num_K_pd = 20
+        par.num_A_pd = 50
+        par.num_K_pd = 10
+
 
         #do Human capital
         par.do_HK = True
@@ -185,6 +192,9 @@ class LimitedCommitmentModelClass(EconModelClass):
         sim.love = np.nan + np.ones(shape_sim)
         sim.Kw = np.nan + np.ones(shape_sim)
         sim.Km = np.nan + np.ones(shape_sim)
+        
+        sim.exp_w = np.nan + np.ones(shape_sim)
+        sim.exp_m = np.nan + np.ones(shape_sim)
         sim.Zw = np.nan + np.ones(shape_sim)
         sim.Zm = np.nan + np.ones(shape_sim)
         sim.value = np.nan + np.ones(shape_sim)
@@ -193,10 +203,17 @@ class LimitedCommitmentModelClass(EconModelClass):
         # shocks
         np.random.seed(par.seed)
         sim.draw_love = par.sigma_love * np.random.normal(size=shape_sim)
-        #sim.draw_Kw = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
-        #sim.draw_Km = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
-        sim.draw_Kw = par.sigma_K*np.random.normal(size=shape_sim)
-        sim.draw_Km = par.sigma_K*np.random.normal(size=shape_sim)
+        if par.do_HK:
+            sim.draw_Kw = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
+            sim.draw_Km = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
+            sim.draw_Kw_temp = np.zeros(shape_sim)
+            sim.draw_Km_temp = np.zeros(shape_sim)
+        else:
+            sim.draw_Kw_temp = par.sigma_K*np.random.normal(size=shape_sim)
+            sim.draw_Km_temp = par.sigma_K*np.random.normal(size=shape_sim)
+            sim.draw_Kw = np.ones(shape_sim)
+            sim.draw_Km = np.ones(shape_sim)
+            
         sim.draw_Zw = np.random.uniform(size=shape_sim)
         sim.draw_Zm = np.random.uniform(size=shape_sim) 
 

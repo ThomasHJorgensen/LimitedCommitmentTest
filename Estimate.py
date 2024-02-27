@@ -55,7 +55,9 @@ def create_data_new(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simu
             'value'    : model.sim.value[:,i],
             'util' : model.sim.util[:,i],
             'barganing': model.sim.power[:,i],
-            'Love': model.sim.love[:,i]
+            'Love': model.sim.love[:,i],
+            'exp_w': model.sim.exp_w[:,i],
+            'exp_m': model.sim.exp_m[:,i]
         })
 
         

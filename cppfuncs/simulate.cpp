@@ -235,7 +235,8 @@ namespace sim {
                         sim->Km[it] = sim->init_Km[i];
                         sim->Kw[it] = MIN(sim->Kw[it],par->max_K); // cannot accumulate more HK than max
                         sim->Km[it] = MIN(sim->Km[it],par->max_K); // cannot accumulate more HK than max
-                        
+                        sim->exp_w[it] = 0.0;
+                        sim->exp_m[it] = 0.0;
                         sim->Zw[it] = sim->init_Zw[i];
                         sim->Zm[it] = sim->init_Zm[i];
 
@@ -320,13 +321,16 @@ namespace sim {
                         sim->A[it] = resources - cons;
                         if(t<par->T-1){
                             sim->love[it1] = sim->love[it] + sim->draw_love[it1];
-                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) + sim->draw_Kw[it1];
-                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) + sim->draw_Km[it1];
+                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) * sim->draw_Kw[it1] +sim->draw_Kw_temp[it1];
+                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) * sim->draw_Km[it1] +sim->draw_Km_temp[it1];
                             sim->Kw[it1] = MIN(sim->Kw[it1],par->max_K); // cannot accumulate more HK than max
                             sim->Km[it1] = MIN(sim->Km[it1],par->max_K); // cannot accumulate more HK than max
                             sim->Kw[it1] = MAX(sim->Kw[it1],0); // cannot accumulate less HK than zero
                             sim->Km[it1] = MAX(sim->Km[it1],0); // cannot accumulate less HK than zero
+                            sim->exp_w[it1] = sim->exp_w[it]+sim->labor_w[it];
+                            sim->exp_m[it1] = sim->exp_m[it]+sim->labor_m[it];
                             sim->Zw[it1] = sim->Zw[it] ;
+                            
                             if (grid_weight_Zw<sim->draw_Zw[it]) {
                                 sim->Zw[it1] =1.0-sim->Zw[it];
                             }
@@ -383,12 +387,14 @@ namespace sim {
                     
 
                         if(t<par->T-1){
-                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) + sim->draw_Kw[it1];
-                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) + sim->draw_Km[it1];
+                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) * sim->draw_Kw[it1] +sim->draw_Kw_temp[it1];
+                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) * sim->draw_Km[it1]  +sim->draw_Km_temp[it1];
                             sim->Kw[it1] = MIN(sim->Kw[it1],par->max_K); // cannot accumulate more HK than max
                             sim->Km[it1] = MIN(sim->Km[it1],par->max_K); // cannot accumulate more HK than max
                             sim->Kw[it1] = MAX(sim->Kw[it1],0); // cannot accumulate less HK than zero
                             sim->Km[it1] = MAX(sim->Km[it1],0); // cannot accumulate less HK than zero
+                            sim->exp_w[it1] = sim->exp_w[it]+sim->labor_w[it];
+                            sim->exp_m[it1] = sim->exp_m[it]+sim->labor_m[it];
                             sim->Zw[it1] = sim->Zw[it] ;
                             if (par->pr_z > sim->draw_Zw[it]) {
                                 sim->Zw[it1] =1.0-sim->Zw[it];
