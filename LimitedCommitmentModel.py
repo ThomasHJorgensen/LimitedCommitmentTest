@@ -28,8 +28,7 @@ class LimitedCommitmentModelClass(EconModelClass):
     def setup(self):
         par = self.par
         
-        #par.R = 1.03
-        par.R = 1.015
+        par.R = 1.04
         #par.beta = 1.0/par.R # Discount factor
         par.beta = 0.98 # Discount factor
         
@@ -53,40 +52,36 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.kappa2 = 0.185 #progression of the tax system from Heathcote et al
         #par.kappa2 = 0.0 #progression of the tax system from Heathcote et al
 
-        par.wage_const_w = 0.9
-        par.wage_const_m = 1.1
 
-        par.wage_K_w = 0.8
-        par.wage_K_m = 1.2
+        par.wage_const_w = 0.01
+        par.wage_const_m = 0.01
 
-        par.lambdaa2 = 1.0 #HK return to work  
-        par.lambdaa2 = 0.7 #HK return to work  
-        #par.lambdaa2_HK = 0.09  #HK return to work  
-        
-        par.lambdaa2_HK = 0.5  #HK return to work  
-        par.lambdaa3 = 0.009
-        par.lambdaa4 = 0.00009
+        par.wage_K_w = 0.5
+        par.wage_K_m = 0.6
+
+        par.lambdaa2 = 1.0 #HK return to work              
+        par.lambdaa2_HK = 0.2  #HK return to work  
+        par.lambdaa3 = 0.03
+        par.lambdaa4 = 0.0001
  
         par.K_depre = 0.1
-        par.K_depre = 0.2
         
         # state variables
         par.T = 2
         
-        # wealth
-        par.num_A = 80
-        par.max_A = 60.0
+        # wealth      
+        par.num_A = 50 #50
+        par.max_A = 10.0 # 30
         
-        par.num_A = 40
-        par.max_A = 15.0
+
         par.max_Aw = par.max_A*par.div_A_share 
         par.max_Am = par.max_A*(1-par.div_A_share )
 
         # human capital
-        par.num_K = 10
-        par.max_K = 1.0
+        par.num_K = 10 #20
+        par.max_K = 2.0 #1.0
 
-        par.sigma_K = 0.1
+        par.sigma_K = 0.1 #0.1
         par.sigma_K_init = 1.0
         par.num_shock_K = 5
         
@@ -108,7 +103,7 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # simulation
         par.seed = 9210
-        par.simN = 10_000
+        par.simN = 5_000
 
         # bargaining model
         par.bargaining = 1 # 0: no bargaining, full commitment, 1: limited commitment, 2: no commitment, 'Nash' bargaining
@@ -118,8 +113,8 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.threads = 16
 
         # post-decision states
-        par.num_A_pd = 50
-        par.num_K_pd = 10
+        par.num_A_pd = 40 #50
+        par.num_K_pd = 20
 
 
         #do Human capital
@@ -152,6 +147,8 @@ class LimitedCommitmentModelClass(EconModelClass):
        
         # couples
         shape_couple = (par.T,par.num_Z, par.num_Z,par.num_power,par.num_love,par.num_A,par.num_K,par.num_K)     # states when couple: T, assets, power, love
+        #shape_couple = (par.num_Z, par.num_Z)     # states when couple: T, assets, power, love
+        
         sol.Vw_couple = np.nan + np.ones(shape_couple) # value of starting as couple
         sol.Vm_couple = np.nan + np.ones(shape_couple)
         sol.labor_w_couple = np.nan + np.ones(shape_couple)
@@ -204,15 +201,15 @@ class LimitedCommitmentModelClass(EconModelClass):
         np.random.seed(par.seed)
         sim.draw_love = par.sigma_love * np.random.normal(size=shape_sim)
         if par.do_HK:
-            sim.draw_Kw = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
-            sim.draw_Km = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
+            sim.draw_Kw_perm = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
+            sim.draw_Km_perm = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
             sim.draw_Kw_temp = np.zeros(shape_sim)
             sim.draw_Km_temp = np.zeros(shape_sim)
         else:
             sim.draw_Kw_temp = par.sigma_K*np.random.normal(size=shape_sim)
             sim.draw_Km_temp = par.sigma_K*np.random.normal(size=shape_sim)
-            sim.draw_Kw = np.ones(shape_sim)
-            sim.draw_Km = np.ones(shape_sim)
+            sim.draw_Kw_perm = np.ones(shape_sim)
+            sim.draw_Km_perm = np.ones(shape_sim)
             
         sim.draw_Zw = np.random.uniform(size=shape_sim)
         sim.draw_Zm = np.random.uniform(size=shape_sim) 
@@ -243,7 +240,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         par = self.par
         
         # wealth. Single grids are such to avoid interpolation
-        par.grid_A = nonlinspace(0.0,par.max_A,par.num_A,1.1)       # asset grid
+        par.grid_A = nonlinspace(0.0,par.max_A,par.num_A,1.2)       # asset grid
 
         par.grid_Aw = par.div_A_share * par.grid_A                  # asset grid in case of divorce
         par.grid_Am = (1.0 - par.div_A_share) * par.grid_A
@@ -273,17 +270,17 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         if par.sigma_K<=1.0e-6:
             par.num_shock_K = 1
-            par.grid_shock_K,par.grid_weight_K = np.array([0.0]),np.array([1.0])
+            par.grid_shock_K_perm,par.grid_weight_K = np.array([0.0]),np.array([1.0])
 
         else:
             if par.do_HK:
                 #if do HK, permanent wage shock
-                par.grid_shock_K,par.grid_weight_K = quadrature.log_normal_gauss_hermite(par.sigma_K,par.num_shock_K)
+                par.grid_shock_K_perm,par.grid_weight_K = quadrature.log_normal_gauss_hermite(par.sigma_K,par.num_shock_K)
                 par.grid_shock_K_temp = np.zeros(par.num_shock_K)
             else:
                 #if not HK temporary wage shock
                 par.grid_shock_K_temp,par.grid_weight_K = quadrature.normal_gauss_hermite(par.sigma_K,par.num_shock_K)
-                par.grid_shock_K = np.ones(par.num_shock_K)
+                par.grid_shock_K_perm = np.ones(par.num_shock_K)
 
 
         #divorce utility grid
@@ -297,7 +294,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         #par.pr_distr_factor = np.array([[par.pr_distr_factor*(1-par.pr_distr_factor),par.pr_distr_factor*par.pr_distr_factor+(1-par.pr_distr_factor)*(1-par.pr_distr_factor),par.pr_distr_factor*(1-par.pr_distr_factor)]])
 
         # post-decision states
-        par.grid_A_pd = nonlinspace(0.0,par.max_A,par.num_A_pd,1.1)       # asset grid
+        par.grid_A_pd = nonlinspace(0.0,par.max_A,par.num_A_pd,1.2)       # asset grid
         if par.do_HK: 
             par.grid_K_pd = nonlinspace(0.0,par.max_K,par.num_K_pd,1.1)       # human capital grid
         else: 

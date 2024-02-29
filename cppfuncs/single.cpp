@@ -50,7 +50,7 @@ namespace single {
                 for(int iZ_next=0;iZ_next<par->num_Z;iZ_next++){
 
                     int idx_next = index::index4(t+1,iZ_next,0,0,par->T, par->num_Z,par->num_A,par->num_K);
-                    double K_next = Kbar*par->grid_shock_K[iK_next]+par->grid_shock_K_temp[iK_next];
+                    double K_next = Kbar*par->grid_shock_K_perm[iK_next]+par->grid_shock_K_temp[iK_next];
                     //double Znext = iZ_next;
                     
                     double interp_next = tools::interp_2d(grid_A,par->grid_K,par->num_A,par->num_K,&V_next[idx_next],A_next,K_next);
@@ -118,6 +118,7 @@ namespace single {
         double lb[dim],ub[dim],y[dim];
         
         auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
+        //auto opt = nlopt_create(NLOPT_LD_LBFGS, dim);
         double minf=0.0;
 
         // bounds
@@ -157,6 +158,9 @@ namespace single {
             double lb[dim],ub[dim],x[dim];
             
             auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); //NLOPT_LN_BOBYQA NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
+            
+            //auto opt = nlopt_create(NLOPT_LD_LBFGS , dim); //NLOPT_LN_BOBYQA NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
+
             nlopt_set_ftol_rel(opt,1.0e-8);
             nlopt_set_xtol_rel(opt,1.0e-6);
             double minf=0.0;

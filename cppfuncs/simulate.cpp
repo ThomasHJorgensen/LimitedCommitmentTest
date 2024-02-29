@@ -321,8 +321,8 @@ namespace sim {
                         sim->A[it] = resources - cons;
                         if(t<par->T-1){
                             sim->love[it1] = sim->love[it] + sim->draw_love[it1];
-                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) * sim->draw_Kw[it1] +sim->draw_Kw_temp[it1];
-                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) * sim->draw_Km[it1] +sim->draw_Km_temp[it1];
+                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) * sim->draw_Kw_perm[it1] +sim->draw_Kw_temp[it1];
+                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) * sim->draw_Km_perm[it1] +sim->draw_Km_temp[it1];
                             sim->Kw[it1] = MIN(sim->Kw[it1],par->max_K); // cannot accumulate more HK than max
                             sim->Km[it1] = MIN(sim->Km[it1],par->max_K); // cannot accumulate more HK than max
                             sim->Kw[it1] = MAX(sim->Kw[it1],0); // cannot accumulate less HK than zero
@@ -387,8 +387,8 @@ namespace sim {
                     
 
                         if(t<par->T-1){
-                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) * sim->draw_Kw[it1] +sim->draw_Kw_temp[it1];
-                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) * sim->draw_Km[it1]  +sim->draw_Km_temp[it1];
+                            sim->Kw[it1] = utils::K_bar(sim->Kw[it],sim->labor_w[it],t+1,par) * sim->draw_Kw_perm[it1] +sim->draw_Kw_temp[it1];
+                            sim->Km[it1] = utils::K_bar(sim->Km[it],sim->labor_m[it],t+1,par) * sim->draw_Km_perm[it1]  +sim->draw_Km_temp[it1];
                             sim->Kw[it1] = MIN(sim->Kw[it1],par->max_K); // cannot accumulate more HK than max
                             sim->Km[it1] = MIN(sim->Km[it1],par->max_K); // cannot accumulate more HK than max
                             sim->Kw[it1] = MAX(sim->Kw[it1],0); // cannot accumulate less HK than zero
