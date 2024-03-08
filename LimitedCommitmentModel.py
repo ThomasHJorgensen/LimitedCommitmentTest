@@ -72,7 +72,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.T = 2
         
         # wealth      
-        par.num_A = 200 #300
+        par.num_A = 300 #300
         par.max_A = 10.0 # 30
         par.max_A = 7.0 # 30
 
@@ -80,7 +80,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.max_Am = par.max_A*(1-par.div_A_share )
 
         # human capital
-        par.num_K = 15 #10
+        par.num_K = 10 #10
         par.max_K = 2.0 #1.0
 
         par.sigma_K = 0.2 #0.1
@@ -90,7 +90,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.num_power = 11 #21
 
         # love/match quality
-        par.num_love = 41 #81
+        par.num_love = 21 #81
         par.max_love = 1.0
 
         par.sigma_love = 0.031  # from Mariage labor supply and the Dynamics of social safety net
