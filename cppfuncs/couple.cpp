@@ -54,9 +54,10 @@ namespace couple {
         #pragma omp parallel num_threads(par->threads)
         {
         #pragma omp for
-        for (int iP=0; iP<par->num_power; iP++){
-            for (int iL=0; iL<par->num_love; iL++){
-                double love = par->grid_love[iL];
+        
+        for (int iL=0; iL<par->num_love; iL++){
+            double love = par->grid_love[iL];
+            for (int iP=0; iP<par->num_power; iP++){
                 
                 for (int iZw=0; iZw<par->num_Z; iZw++){
                     int idx_Zw = index::index2(iZw,0,par->num_Z,par->num_Z);
@@ -95,7 +96,10 @@ namespace couple {
                                     double EVw_plus = 0.0;
                                     double EVm_plus = 0.0;
                                     for (int iZw_next=0; iZw_next<par->num_Z; iZw_next++){
+                                        //int idx_Zw_weight = index::index2(iZw,iZw_next,par->num_Z,par->num_Z);
                                         for (int iZm_next=0; iZm_next<par->num_Z; iZm_next++){
+                                            
+                                            //int idx_Zm_weight = index::index2(iZm,iZm_next,par->num_Z,par->num_Z);
                                             // next-period values
                                             int idx_next = index::couple(t_next,iZw_next,iZm_next, iP,0,0,0,0,par);
                                             double* Vw_next = &sol->Vw_couple[idx_next]; 
@@ -119,7 +123,8 @@ namespace couple {
                                                         double Vw_interp, Vm_interp;
                                                         tools::_interp_4d_2out(&Vw_interp,&Vm_interp, par->grid_love,par->grid_A,par->grid_K,par->grid_K,par->num_love,par->num_A,par->num_K,par->num_K, Vw_next,Vm_next, love_next,A_next,Kw_next,Km_next, jL,jA,jKw,jKm);
                                                         
-                                                        double weight = par->grid_weight_love[iL_next] * par->grid_weight_K[iKw_next] * par->grid_weight_K[iKm_next]*grid_weight_Zw[iZw_next]*grid_weight_Zm[iZm_next];
+                                                        double weight = par->grid_weight_love[iL_next] * par->grid_weight_K[iKw_next] * par->grid_weight_K[iKm_next] * grid_weight_Zw[iZw_next] * grid_weight_Zm[iZm_next];
+                                                        //double weight = par->grid_weight_love[iL_next] * par->grid_weight_K[iKw_next] * par->grid_weight_K[iKm_next] * par->grid_weight_Z[idx_Zw_weight] * par->grid_weight_Z[idx_Zm_weight];
                                                         EVw_plus += weight * Vw_interp;
                                                         EVm_plus += weight * Vm_interp;
                                                     }
@@ -272,7 +277,8 @@ namespace couple {
 
             // bounds
             lb[0] = 1.0e-6;
-            ub[0] = resources(labor_w,labor_m,A,Kw,Km,par)-1.0e-6;
+            //ub[0] = resources(labor_w,labor_m,A,Kw,Km,par)-1.0e-6;
+            ub[0] = A; /*income is end period, so you can only consume saving*/
             nlopt_set_lower_bounds(opt, lb);
             nlopt_set_upper_bounds(opt, ub);
 
@@ -340,7 +346,7 @@ namespace couple {
         solver_data->lower = lb;
         solver_data->upper = ub;
 
-        solver_data->cons = 0.5; // initial guess on consumption (used in inner optimization)
+        solver_data->cons = A/2.0; // initial guess on consumption (used in inner optimization)
 
         double Vw,Vm; // store individual values herein
         solver_data->Vw = &Vw; 
@@ -395,8 +401,8 @@ namespace couple {
 
             // loop through states (par.T,par.num_power,par.num_love,par.num_A,par.num_K,par.num_K)
             #pragma omp for
-            for (int iP=0; iP<par->num_power; iP++){
-                for (int iL=0; iL<par->num_love; iL++){
+            for (int iL=0; iL<par->num_love; iL++){
+                for (int iP=0; iP<par->num_power; iP++){
                     
                     for (int iZw=0; iZw<par->num_Z; iZw++){
                     

@@ -22,8 +22,8 @@ namespace utils {
 
         double C_public = equiv_scale(cons, d);
         //double util_labor = -(pow(labor,gamma2))/(gamma2);
-        //double util_cons = (pow((C_public*exp(gamma2 * (labor))),1.0-gamma1))/(1.0-gamma1);
-        double util_cons = (pow((C_public),1.0-gamma1))/(1.0-gamma1);
+        double util_cons = (pow((C_public*exp(gamma2 * (labor))),1.0-gamma1))/(1.0-gamma1);
+        //double util_cons = (pow((C_public),1.0-gamma1))/(1.0-gamma1);
         double util_labor = -(pow(labor,gamma3))/(gamma3);
         return util_labor + util_cons;
         

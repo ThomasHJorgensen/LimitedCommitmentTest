@@ -40,11 +40,12 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.gamma1_m = 1.5        # CRRA from Mariage labor supply and the Dynamics of social safety net
 
         
-        par.gamma2_w = 1.55        # average from Mariage labor supply and the Dynamics of social safety net
-        par.gamma2_m = 1.55        # average from Mariage labor supply and the Dynamics of social safety net
+        par.gamma2_w = 0.1      
+        par.gamma2_m = 0.1       
 
+        
         par.gamma3_w = 1.5       
-        par.gamma3_m= 1.5       
+        par.gamma3_m= 1.5     
 
 
         # wage process
@@ -58,6 +59,7 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         par.wage_K_w = 0.5
         par.wage_K_m = 0.6
+        par.wage_K_m = 0.5
 
         par.lambdaa2 = 1.0 #HK return to work              
         par.lambdaa2_HK = 0.2  #HK return to work  
@@ -70,33 +72,33 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.T = 2
         
         # wealth      
-        par.num_A = 50 #50
+        par.num_A = 200 #300
         par.max_A = 10.0 # 30
-        
+        par.max_A = 7.0 # 30
 
         par.max_Aw = par.max_A*par.div_A_share 
         par.max_Am = par.max_A*(1-par.div_A_share )
 
         # human capital
-        par.num_K = 10 #20
+        par.num_K = 15 #10
         par.max_K = 2.0 #1.0
 
-        par.sigma_K = 0.1 #0.1
-        par.sigma_K_init = 1.0
-        par.num_shock_K = 5
+        par.sigma_K = 0.2 #0.1
+        par.num_shock_K = 7
         
         # bargaining power
-        par.num_power = 21
+        par.num_power = 11 #21
 
         # love/match quality
-        par.num_love = 10
-        par.max_love = 0.7
+        par.num_love = 41 #81
+        par.max_love = 1.0
 
         par.sigma_love = 0.031  # from Mariage labor supply and the Dynamics of social safety net
-        par.num_shock_love = 5 
+        par.num_shock_love = 7 
 
         #divorce quality
         par.pr_z = 0.05
+        par.util_Z = -0.5
 
         #initial distribution factor
         par.pr_distr_factor = 0.5
@@ -113,8 +115,8 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.threads = 16
 
         # post-decision states
-        par.num_A_pd = 40 #50
-        par.num_K_pd = 20
+        par.num_A_pd = 100 #100
+        par.num_K_pd = 14
 
 
         #do Human capital
@@ -226,10 +228,10 @@ class LimitedCommitmentModelClass(EconModelClass):
         sim.init_Km = np.random.uniform(low=0.0, high =0.2,size=shape_sim)
         #sim.init_Kw = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
         #sim.init_Km = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
-        #sim.init_Zw = np.zeros(par.simN)
-        #sim.init_Zm = np.zeros(par.simN)
-        sim.init_Zw = np.random.choice(2,par.simN)
-        sim.init_Zm = np.random.choice(2,par.simN)
+        sim.init_Zw = np.zeros(par.simN)
+        sim.init_Zm = np.zeros(par.simN)
+        #sim.init_Zw = np.random.choice(2,par.simN)
+        #sim.init_Zm = np.random.choice(2,par.simN)
 
 
         sim.init_distr = np.random.choice(3,par.simN, p =[par.pr_distr_factor*(1-par.pr_distr_factor),par.pr_distr_factor*par.pr_distr_factor+(1-par.pr_distr_factor)*(1-par.pr_distr_factor),par.pr_distr_factor*(1-par.pr_distr_factor)])
@@ -240,7 +242,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         par = self.par
         
         # wealth. Single grids are such to avoid interpolation
-        par.grid_A = nonlinspace(0.0,par.max_A,par.num_A,1.2)       # asset grid
+        par.grid_A = nonlinspace(1.0e-2,par.max_A,par.num_A,1.5)       # asset grid
 
         par.grid_Aw = par.div_A_share * par.grid_A                  # asset grid in case of divorce
         par.grid_Am = (1.0 - par.div_A_share) * par.grid_A
@@ -294,7 +296,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         #par.pr_distr_factor = np.array([[par.pr_distr_factor*(1-par.pr_distr_factor),par.pr_distr_factor*par.pr_distr_factor+(1-par.pr_distr_factor)*(1-par.pr_distr_factor),par.pr_distr_factor*(1-par.pr_distr_factor)]])
 
         # post-decision states
-        par.grid_A_pd = nonlinspace(0.0,par.max_A,par.num_A_pd,1.2)       # asset grid
+        par.grid_A_pd = nonlinspace(1.0e-2,par.max_A,par.num_A_pd,1.1)       # asset grid
         if par.do_HK: 
             par.grid_K_pd = nonlinspace(0.0,par.max_K,par.num_K_pd,1.1)       # human capital grid
         else: 

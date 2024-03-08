@@ -268,11 +268,6 @@ namespace sim {
 
                     int iZw = sim->Zw[it] ;
                     int iZm = sim->Zm[it];
-                    int idx_Zw = index::index2(0,0,par->num_Z,par->num_Z);
-                    int idx_Zm = index::index2(0,0,par->num_Z,par->num_Z);
-                    
-                    double grid_weight_Zw = par->grid_weight_Z[idx_Zw];
-                    double grid_weight_Zm = par->grid_weight_Z[idx_Zm];
                     // first check if they want to remain together and what the bargaining power will be if they do.
                     double power;
                     if (couple_lag) {
@@ -331,11 +326,11 @@ namespace sim {
                             sim->exp_m[it1] = sim->exp_m[it]+sim->labor_m[it];
                             sim->Zw[it1] = sim->Zw[it] ;
                             
-                            if (grid_weight_Zw<sim->draw_Zw[it]) {
+                            if (par->pr_z >sim->draw_Zw[it]) {
                                 sim->Zw[it1] =1.0-sim->Zw[it];
                             }
                             sim->Zm[it1] = sim->Zm[it] ;
-                            if (grid_weight_Zm<sim->draw_Zm[it]) {
+                            if (par->pr_z >sim->draw_Zm[it]) {
                                 sim->Zm[it1] =1.0-sim->Zm[it];
                             }
                         }

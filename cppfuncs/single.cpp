@@ -33,7 +33,7 @@ namespace single {
     double value_of_choice(double cons, double labor, double Z, double A, double K, int gender,int t, double* V_next, double* grid_weight_Z, par_struct* par){
         double d = 1.0; //Divorce
         // flow-utility
-        double Util = utils::util(cons,labor,gender,d,par)-Z;
+        double Util = utils::util(cons,labor,gender,d,par)-par->util_Z*Z;
         // continuation value
         double EVnext = 0.0;
         if(t<par->T-1){
@@ -54,7 +54,7 @@ namespace single {
                     //double Znext = iZ_next;
                     
                     double interp_next = tools::interp_2d(grid_A,par->grid_K,par->num_A,par->num_K,&V_next[idx_next],A_next,K_next);
-                    EVnext += par->grid_weight_K[iK_next] * grid_weight_Z[iZ_next] *interp_next;
+                    EVnext += par->grid_weight_K[iK_next] * grid_weight_Z[iZ_next] * interp_next;
                 }
             }
         }
@@ -123,7 +123,8 @@ namespace single {
 
         // bounds
         lb[0] = 1.0e-6;
-        ub[0] = resources_single(labor,A,K,gender,par)-1.0e-6;
+        //ub[0] = resources_single(labor,A,K,gender,par)-1.0e-6;
+        ub[0] = A; /*income is end period, so you can only consume saving*/
         nlopt_set_lower_bounds(opt, lb);
         nlopt_set_upper_bounds(opt, ub);
 
