@@ -4,6 +4,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import scipy.optimize as optimize
 import Estimate
+import figure
 from EconModel import cpptools
 
 from LimitedCommitmentModel import LimitedCommitmentModelClass
@@ -74,6 +75,19 @@ for m,(name,spec) in enumerate(specs.items()):
     print(f'Laborw {np.mean(models[name].sim.labor_w,0)}')
     print(f'Laborm {np.mean(models[name].sim.labor_m,0)}')
     print(f'Asset {np.nanmean(models[name].sim.A,0)}')
+    
+    var_list = ('labor_w', 'labor_m', )
+    t_list = (1, 4)
+    i_A = 5
+    i_HK = 1
+    i_HKw = i_HK
+    i_HKm = i_HK
+    i_Z = 0
+    i_Zw = i_Z
+    i_Zm = i_Z
+    i_P = 5
+    i_L = 2
+    figure.figure_single(models[name], var_list, t_list, i_A, i_Z, i_HK, model_name = name)
 
 
 
