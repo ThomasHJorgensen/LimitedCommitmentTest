@@ -65,6 +65,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.lambdaa2_HK = 0.2  #HK return to work  
         par.lambdaa3 = 0.03
         par.lambdaa4 = 0.0001
+        par.phi = 3.0 #value of saving in last period
  
         par.K_depre = 0.1
         
@@ -74,24 +75,23 @@ class LimitedCommitmentModelClass(EconModelClass):
         # wealth      
         par.num_A = 300 #300
         par.max_A = 10.0 # 30
-        par.max_A = 7.0 # 30
 
         par.max_Aw = par.max_A*par.div_A_share 
         par.max_Am = par.max_A*(1-par.div_A_share )
 
         # human capital
-        par.num_K = 10 #10
+        par.num_K = 15 #10
         par.max_K = 2.0 #1.0
 
-        par.sigma_K = 0.2 #0.1
+        par.sigma_K = 0.1 #0.1
         par.num_shock_K = 7
         
         # bargaining power
         par.num_power = 11 #21
 
         # love/match quality
-        par.num_love = 21 #81
-        par.max_love = 1.0
+        par.num_love = 11 #81
+        par.max_love = 0.7
 
         par.sigma_love = 0.031  # from Mariage labor supply and the Dynamics of social safety net
         par.num_shock_love = 7 
@@ -115,7 +115,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.threads = 16
 
         # post-decision states
-        par.num_A_pd = 100 #100
+        par.num_A_pd = 300 #100
         par.num_K_pd = 14
 
 

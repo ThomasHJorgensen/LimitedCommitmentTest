@@ -29,6 +29,11 @@ namespace utils {
         
     }
 
+    
+    double util_last_period(double A, par_struct *par){
+        
+        return 3.0*log(A+par->phi)-1-3.0*log(par->phi);
+    }
 
     double wage_func(double K, int gender, par_struct* par){
         double wage_const = par->wage_const_w;

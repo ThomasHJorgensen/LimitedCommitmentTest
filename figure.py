@@ -34,9 +34,9 @@ def figure_single(model, var_list, t_list,  i_A , i_Z , i_HK , model_name = 'mod
             Z = getattr(model.sol,var_now)[t,0]
             ax.plot_surface(X, Y,Z,cstride=1,cmap=cmaps[0], edgecolor='none',alpha=alpha)       
             ax.set(xlabel='$A_{j,t-1}$',ylabel='$K_{j,t}$', zlabel=var)
-            plt.savefig(f'{path}{model_name}_single_{var}_gridA_gridK_t{t}.png')
+            plt.savefig(f'{path}{var_name}_gridA_gridK_t{t}.png')
    
-           # plt.close(fig)
+            plt.close(fig)
 
             fig = plt.figure(figsize=(8,5))
             ax = fig.add_subplot(1,1,1)
@@ -47,7 +47,7 @@ def figure_single(model, var_list, t_list,  i_A , i_Z , i_HK , model_name = 'mod
             ax.set_xlabel(f"$A$")
             ax.set_ylabel(var)       
             plt.savefig(f'{path}{var_name}_gridA_t{t}.png')
-            #plt.close(fig)
+            plt.close(fig)
 
             fig = plt.figure(figsize=(8,5))
             ax = fig.add_subplot(1,1,1)
@@ -57,12 +57,12 @@ def figure_single(model, var_list, t_list,  i_A , i_Z , i_HK , model_name = 'mod
             ax.plot(par.grid_K,Z2, label = 'single woman Z=1')                 
             ax.set_xlabel(f"$K$")
             ax.set_ylabel(var)     
-            plt.savefig(f'{path}test_single_{var}_gridK_t{t}.png')
+            plt.savefig(f'{path}{var_name}_{var}_gridK_t{t}.png')
             plt.legend()
-            #plt.close(fig)
+            plt.close(fig)
 
 
-def figure_couple(model, var_list, t_list, model_name= '', sol_type = 'couple', i_A = 0, i_Zw = 0, i_Zm=0, i_HKw = 0, i_HKm = 0, i_L = 0 , i_P =0):
+def figure_couple(model, var_list, t_list, i_A , i_Zw , i_Zm, i_HKw , i_HKm, i_L  , i_P , sol_type = 'couple',  model_name = 'model', path = 'output/'):
    
     alpha = 0.5 
 
@@ -76,6 +76,8 @@ def figure_couple(model, var_list, t_list, model_name= '', sol_type = 'couple', 
             par = model.par
 
             var_now = f'{var}_{sol_type}'
+            var_name = f'{model_name}_{sol_type}_{var}'
+
             
             
             fig = plt.figure()
@@ -84,7 +86,7 @@ def figure_couple(model, var_list, t_list, model_name= '', sol_type = 'couple', 
             Z = getattr(model.sol,var_now)[t,0,0,i_P,i_L,:,:,i_HKm]
             ax.plot_surface(X, Y,Z,cstride=1,cmap=cmaps[0], edgecolor='none',alpha=alpha);       
             ax.set(xlabel='$A_{j,t-1}$',ylabel='$K_{w,t}$', zlabel=var);
-            plt.savefig(f'output/{model_name}_{sol_type}_{var}_gridA_gridKw_t{t}.png')
+            plt.savefig(f'{path}{var_name}gridA_gridKw_t{t}.png')
             plt.close(fig)
 
             fig = plt.figure()
@@ -93,7 +95,7 @@ def figure_couple(model, var_list, t_list, model_name= '', sol_type = 'couple', 
             Z = getattr(model.sol,var_now)[t,0,0,i_P,i_L,i_A,:,:]
             ax.plot_surface(X, Y,Z,cstride=1,cmap=cmaps[0], edgecolor='none',alpha=alpha);       
             ax.set(xlabel='$K_{w,t}$',ylabel='$K_{m,t}$', zlabel=var);
-            plt.savefig(f'output/{model_name}_{sol_type}_{var}_gridAKw_gridKm_t{t}.png')
+            plt.savefig(f'{path}{var_name}gridAKw_gridKm_t{t}.png')
             plt.close(fig)
 
 
@@ -105,7 +107,7 @@ def figure_couple(model, var_list, t_list, model_name= '', sol_type = 'couple', 
             Z = getattr(model.sol,var_now)[t,0,0,:,i_L,:,i_HKw,i_HKm]   
             ax.plot_surface(X, Y,Z,cstride=1,cmap=cmaps[0], edgecolor='none',alpha=alpha);       
             ax.set(xlabel='$P_{t}$',ylabel='$A_{j,t-1}$', zlabel=var);
-            plt.savefig(f'output/{model_name}_{sol_type}_{var}_gridP_gridA_t{t}.png')
+            plt.savefig(f'{path}{var_name}gridP_gridA_t{t}.png')
             plt.close(fig)
 
 
@@ -116,7 +118,7 @@ def figure_couple(model, var_list, t_list, model_name= '', sol_type = 'couple', 
             Z = getattr(model.sol,var_now)[t,0,0,i_P,:,:,i_HKw,i_HKm]
             ax.plot_surface(X, Y,Z,cstride=1,cmap=cmaps[0], edgecolor='none',alpha=alpha);       
             ax.set(xlabel='$L_{t}$',ylabel='$A_{j,t-1}$', zlabel=var);
-            plt.savefig(f'output/{model_name}_{sol_type}_{var}_gridL_gridA_t{t}.png')
+            plt.savefig(f'{path}{var_name}gridL_gridA_t{t}.png')
             plt.close(fig)
 
 
@@ -134,7 +136,7 @@ def figure_couple(model, var_list, t_list, model_name= '', sol_type = 'couple', 
             ax.plot(par.grid_A,Z4,label = '{sol_type}  woman Zw=1, Zm=1')                      
             ax.set_xlabel(f"$A$")
             ax.set_ylabel(var)
-            plt.savefig(f'output/{model_name}_{sol_type}_{var}_gridA_t{t}.png')
+            plt.savefig(f'{path}{var_name}gridA_t{t}.png')
             plt.close(fig)
 
 
@@ -151,7 +153,7 @@ def figure_couple(model, var_list, t_list, model_name= '', sol_type = 'couple', 
             ax.plot(par.grid_K,Z4, label = '{sol_type} woman Zw=1, Zm=1')                      
             ax.set_xlabel(f"$Kw$")
             ax.set_ylabel(var)
-            plt.savefig(f'output/{model_name}_{sol_type}_{var}_gridK_t{t}.png')
+            plt.savefig(f'{path}{var_name}gridK_t{t}.png')
             plt.close(fig)
 
 
@@ -167,7 +169,7 @@ def figure_couple(model, var_list, t_list, model_name= '', sol_type = 'couple', 
             ax.plot(par.grid_love,Z4, label = '{sol_type} woman Zw=1, Zm=1')                           
             ax.set_xlabel(f"$Love$")
             ax.set_ylabel(var)
-            plt.savefig(f'output/{model_name}_{sol_type}_{var}_gridL_t{t}.png')
+            plt.savefig(f'{path}{var_name}gridL_t{t}.png')
             plt.close(fig)
 
 
@@ -184,7 +186,7 @@ def figure_couple(model, var_list, t_list, model_name= '', sol_type = 'couple', 
             ax.set_xlabel(f"$Power$")
             ax.set_ylabel(var)
             plt.legend()
-            plt.savefig(f'output/{model_name}_{sol_type}_{var}_gridP_t{t}.png')
+            plt.savefig(f'{path}{var_name}gridP_t{t}.png')
             plt.close(fig)
 
 

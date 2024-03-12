@@ -155,9 +155,10 @@ namespace couple {
         Vw[0] = utils::util(cons,labor_w,woman, d,par) + love;
         Vm[0] = utils::util(cons,labor_m,man,d,par) + love;
 
+        
+        double A_next = resources(labor_w,labor_m,A,Kw,Km,par) - cons ;
         // add continuation value 
         if(t<par->T-1){
-            double A_next = resources(labor_w,labor_m,A,Kw,Km,par) - cons ;
             double Kbar_w = utils::K_bar(Kw,labor_w,t,par);
             double Kbar_m = utils::K_bar(Km,labor_m,t,par);
 
@@ -174,6 +175,9 @@ namespace couple {
             Vw[0] += EVw_plus;
             Vm[0] += EVm_plus;
 
+        } else {
+            Vw[0] += utils::util_last_period(A_next,par);
+            Vm[0] += utils::util_last_period(A_next,par);
         }
 
         // return
@@ -269,7 +273,7 @@ namespace couple {
 
         // solve for optimal consumption at this level of labor supply
         double minf=0.0;
-        if (t<(par->T-1)){
+        //if (t<(par->T-1)){
             int const dim = 1;
             double lb[dim],ub[dim],y[dim];
             
@@ -296,12 +300,12 @@ namespace couple {
             // destroy optimizer
             nlopt_destroy(opt);
 
-        } else {
+        //} else {
             // consume all resources in last period
-            solver_data->cons = resources(labor_w,labor_m,A,Kw,Km,par);
-            minf = - value_of_choice(Vw,Vm,solver_data->cons,labor_w,labor_m,power,love,A,Kw,Km,t,solver_data->EVw_next,solver_data->EVm_next,par);
+        //    solver_data->cons = resources(labor_w,labor_m,A,Kw,Km,par);
+        //    minf = - value_of_choice(Vw,Vm,solver_data->cons,labor_w,labor_m,power,love,A,Kw,Km,t,solver_data->EVw_next,solver_data->EVm_next,par);
 
-        }
+        //}
 
         // return objective function
         return minf + penalty;

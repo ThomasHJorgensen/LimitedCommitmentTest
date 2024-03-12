@@ -36,14 +36,16 @@ namespace single {
         double Util = utils::util(cons,labor,gender,d,par)-par->util_Z*Z;
         // continuation value
         double EVnext = 0.0;
+        
+
+        // Expected continuation value
+        double A_next = resources_single(labor,A,K,gender,par) - cons;
         if(t<par->T-1){
             double *grid_A = par->grid_Aw; 
             if (gender==man){
                 grid_A = par->grid_Am;
             }
-
-            // Expected continuation value
-            double A_next = resources_single(labor,A,K,gender,par) - cons;
+            
             double Kbar = utils::K_bar(K,labor,t,par);
             // expected Z
             for(int iK_next=0;iK_next<par->num_shock_K;iK_next++){
@@ -57,6 +59,8 @@ namespace single {
                     EVnext += par->grid_weight_K[iK_next] * grid_weight_Z[iZ_next] * interp_next;
                 }
             }
+        } else {
+            EVnext = utils::util_last_period(A_next,par);
         }
 
         // return discounted sum
