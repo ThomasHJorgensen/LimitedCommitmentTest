@@ -61,13 +61,13 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.wage_K_m = 0.6
         par.wage_K_m = 0.5
 
-        par.lambdaa2 = 1.0 #HK return to work              
-        par.lambdaa2_HK = 0.2  #HK return to work  
+        par.lambdaa2 = 0.1 #HK return to work              
+        par.lambdaa2_HK = 0.02  #HK return to work  
         par.lambdaa3 = 0.03
         par.lambdaa4 = 0.0001
         par.phi = 3.0 #value of saving in last period
  
-        par.K_depre = 0.1
+        par.K_depre = 0.05
         
         # state variables
         par.T = 2
@@ -116,7 +116,7 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # post-decision states
         par.num_A_pd = 300 #100
-        par.num_K_pd = 14
+        par.num_K_pd = 10
 
 
         #do Human capital

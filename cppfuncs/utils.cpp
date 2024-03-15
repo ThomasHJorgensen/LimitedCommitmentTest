@@ -57,9 +57,8 @@ namespace utils {
         double tt = t+20.0;
         
         double HK =par->lambdaa3*tt-par->lambdaa4*pow(tt,2.0);
-        //double HK = par->lambdaa2*(0.7*(tt+1));
         if (par->do_HK) {
-            HK = (1.0-par->K_depre)*K + par->lambdaa2_HK*labor;
+            HK = par->lambdaa2_HK* (par->lambdaa3*tt-par->lambdaa4*pow(tt,2.0)) + (1.0-par->K_depre)*K + par->lambdaa2*labor;
         }
         return HK;
     }
