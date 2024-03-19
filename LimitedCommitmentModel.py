@@ -74,6 +74,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         
         # wealth      
         par.num_A = 300 #300
+        #par.num_A = 10 #TEST AF ESTIMATE
         par.max_A = 10.0 # 30
 
         par.max_Aw = par.max_A*par.div_A_share 
@@ -81,6 +82,7 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # human capital
         par.num_K = 15 #10
+        #par.num_K = 5 #TEST AF ESTIMATE 
         par.max_K = 2.0 #1.0
 
         par.sigma_K = 0.1 #0.1
@@ -105,7 +107,7 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         # simulation
         par.seed = 9210
-        par.simN = 5_000
+        par.simN = 10_000
 
         # bargaining model
         par.bargaining = 1 # 0: no bargaining, full commitment, 1: limited commitment, 2: no commitment, 'Nash' bargaining
