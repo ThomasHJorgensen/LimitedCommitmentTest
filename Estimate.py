@@ -215,7 +215,7 @@ def create_variable(data, par, print_aux_reg = False):
     data['control_cons'] = data['cons_l']*data['delta_log_cons']
 
     
-    data = data[['t','idx','init_barg', 'delta_log_wage_w','delta_log_wage_m','delta_log_fam_inc', 'omega_res_w', 'omega_res_m','omega_res_w_l', 'omega_res_m_l','omega_res_w_l2', 'omega_res_m_l2', 'delta_omega_m','delta_omega_w_l', 'delta_omega_m_l','delta_omega_w_l2', 'delta_omega_m_l2', 'y_w', 'y_m', 'control_part_inc_w', 'control_part_inc_m', 'control_cons', 'delta_log_wealth','delta_log_wealth_l', 'delta_log_wealth_l2' ,'delta_log_fam_inc', 'log_fam_inc', 'log_wealth', 'log_fam_inc_l', 'log_wealth_l', 'log_earnings_w', 'log_earnings_m', 'log_earnings_w_l', 'log_earnings_m_l', 'delta_log_BMI_w', 'delta_log_BMI_m', 'delta_log_BMI_w_l', 'delta_log_BMI_m_l', 'delta_log_BMI_w_l2', 'delta_log_BMI_m_l2']]
+    data = data[['t','idx','init_barg', 'inc_share_w', 'inc_share_w_l', 'delta_log_wage_w','delta_log_wage_m','delta_log_fam_inc', 'omega_res_w', 'omega_res_m','omega_res_w_l', 'omega_res_m_l','omega_res_w_l2', 'omega_res_m_l2', 'delta_omega_m','delta_omega_w_l', 'delta_omega_m_l','delta_omega_w_l2', 'delta_omega_m_l2', 'y_w', 'y_m', 'control_part_inc_w', 'control_part_inc_m', 'control_cons', 'delta_log_wealth','delta_log_wealth_l', 'delta_log_wealth_l2' ,'delta_log_fam_inc', 'log_fam_inc', 'log_wealth', 'log_fam_inc_l', 'log_wealth_l', 'log_earnings_w', 'log_earnings_m', 'log_earnings_w_l', 'log_earnings_m_l', 'delta_log_BMI_w', 'delta_log_BMI_m', 'delta_log_BMI_w_l', 'delta_log_BMI_m_l', 'delta_log_BMI_w_l2', 'delta_log_BMI_m_l2']]
     
     return data
 
@@ -246,13 +246,11 @@ def aux_est(data, par, print_reg = False):
 def main_est(data, do_estimate_omega = True, print_reg = False):
 
 
-    #PREPARE DATA
-    X_t=pd.get_dummies(data[['t', 'init_barg']], columns = ['t','init_barg'], prefix = ['D_t','D_init_barg'], dtype = float) 
-    #X_t=pd.get_dummies(data['t''init_barg'], columns = ['t'], prefix = 'D_t', dtype = float, drop_first=True,  ) 
-    X_t = X_t.drop(columns = ['D_t_1','D_init_barg_1']) #drop reference cat
+    
 
 
 
+    #FOR WOMAN
     if do_estimate_omega:
         data['wage_shock']=data['omega_res_w']
         data['wage_shock_l']=data['omega_res_w_l']
@@ -275,16 +273,52 @@ def main_est(data, do_estimate_omega = True, print_reg = False):
     data['BMI_j_l'] = data['delta_log_BMI_m_l']
     data['BMI_j_l2'] = data['delta_log_BMI_m_l2']
 
-    data_regress = data[['y_w', 'wage_shock','wage_shock_l','wage_shock_l2','wage_shock_j','wage_shock_j_l','wage_shock_j_l2','BMI','BMI_l','BMI_l2','BMI_j','BMI_j_l','BMI_j_l2','control_part_inc_w','control_cons','delta_log_wealth','delta_log_wealth_l','delta_log_wealth_l2']]
+    
+    
+    
+    data_regress = data[['t','init_barg','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'log_wealth_l',  'y_w', 'idx', 'wage_shock','wage_shock_l','wage_shock_l2','wage_shock_j','wage_shock_j_l','wage_shock_j_l2','BMI','BMI_l','BMI_l2','BMI_j','BMI_j_l','BMI_j_l2','control_part_inc_w','control_cons','delta_log_wealth','delta_log_wealth_l','delta_log_wealth_l2']]
 
     #DROP NAN
     data_regress = data_regress.dropna() # det ser ud som om den ikke fjerner nogen
 
+    #PREPARE T
+    X_t=pd.get_dummies(data_regress[['t', 'init_barg']], columns = ['t','init_barg'], prefix = ['D_t','D_init_barg'], dtype = float) 
+    #X_t=pd.get_dummies(data['t''init_barg'], columns = ['t'], prefix = 'D_t', dtype = float, drop_first=True,  ) 
+    X_t = X_t.drop(columns = ['D_t_1','D_init_barg_1']) #drop reference cat
+
+
+    #SHADOW VALUE: 
+    Shadow_value = data_regress[['t']]
+    #data_test['earbubgs'] = pd.qcut(data['log_wealth'], 10, labels = False) 
+    cat = ['log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'log_wealth_l']
+    #NB SKAL EVT VÆRE FORWARD I STEDET 
+
+
+    for i in cat:
+        Shadow_value[i] = pd.qcut(data_regress[i], 10, labels = False, duplicates='raise') 
+
+    Shadow_value['earnings_w_m'] = Shadow_value['log_earnings_w'].astype('str') + '_' + Shadow_value['log_earnings_m'].astype('str')
+    Shadow_value['earnings_w_m_l'] = Shadow_value['log_earnings_w_l'].astype('str') + '_' + Shadow_value['log_earnings_m_l'].astype('str')
+    Shadow_value['inc_share_n_l'] = Shadow_value['inc_share_w_l'].astype('str') + '_' + Shadow_value['inc_share_w'].astype('str')
+    Shadow_value['wealth_n_l'] = Shadow_value['log_wealth'].astype('str') + '_' + Shadow_value['log_wealth_l'].astype('str')
+
+    Shadow_value = pd.get_dummies(Shadow_value, columns=['earnings_w_m', 'earnings_w_m_l', 'inc_share_n_l','wealth_n_l' ], dtype = float)
+
+
+    #Drop if less than two
+    Shadow_value = Shadow_value.loc[:,(Shadow_value.sum()>2 )]
+    Shadow_value = Shadow_value.drop(columns = ['t','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'log_wealth_l'])
+
+
+
+    df = data_regress.drop(columns = ['t','init_barg','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'log_wealth_l',  'y_w', 'idx'])
+
     #REGRESS
     y  = data_regress['y_w']
-    x = pd.concat([data_regress.drop(columns = ['y_w']),  X_t ], axis=1 )
+    x = pd.concat([df,  X_t , Shadow_value], axis=1 )
     x = sm.add_constant(x)  
-    result = sm.OLS(y,x).fit() #TODO: use correct standard errors
+    #result = sm.OLS(y,x).fit() 
+    result = sm.OLS(y,x).fit().get_robustcov_results(cov_type = 'cluster', groups = data_regress['idx'])
 
     #SAVE WALD TEST
     Wald_FC = result.wald_test('(wage_shock_l=0, wage_shock_l2=0,wage_shock_j=0,wage_shock_j_l=0, wage_shock_j_l2=0, BMI=0, BMI_l=0, BMI_l2=0,BMI_j=0,BMI_j_l=0, BMI_j_l2=0,D_init_barg_0=0,D_init_barg_2=0)', use_f = False)
@@ -294,16 +328,15 @@ def main_est(data, do_estimate_omega = True, print_reg = False):
         print(result.summary())
 
 
-        #test for full commitment* TODO CHECK IF IT IS THE CORRECT variable that is tested! 
+        #test for full commitment
         print(f' Test for full commitment')
-        #print(result.wald_test('(X4=0, X5=0, X6=0, X7a=0, X7b=0, X8a=0, X8b=0 , X9 =0)', use_f = False)) #with Z
         print(Wald_FC )
 
-        #test for no commitment* these should be zero
+        #test for no commitment
         print(f' Test for no commitment')
-        #print(result.wald_test('(X5=0, X6=0, X7a=0, X7b=0, X8a=0, X8b=0 , X9 =0)', use_f = False)) #with Z
         print(Wald_NC)
 
+    #FOR MAN!!
 
     return  data_regress, Wald_FC, Wald_NC
 
