@@ -73,16 +73,16 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.T = 2
         
         # wealth      
-        #par.num_A = 300 #300
-        par.num_A = 10 #TEST AF ESTIMATE
+        par.num_A = 300 #300
+        #par.num_A = 10 #TEST AF ESTIMATE
         par.max_A = 10.0 # 30
 
         par.max_Aw = par.max_A*par.div_A_share 
         par.max_Am = par.max_A*(1-par.div_A_share )
 
         # human capital
-        #par.num_K = 15 #10
-        par.num_K = 5 #TEST AF ESTIMATE 
+        par.num_K = 15 #10
+        #par.num_K = 5 #TEST AF ESTIMATE 
         par.max_K = 2.0 #1.0
 
         par.sigma_K = 0.1 #0.1
