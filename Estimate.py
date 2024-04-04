@@ -217,7 +217,6 @@ def create_variable(data, par, print_aux_reg = False):
 
     
     data = data[['t','idx','init_barg', 'inc_share_w', 'inc_share_w_l', 'delta_log_wage_w','delta_log_wage_m','delta_log_fam_inc', 'omega_res_w', 'omega_res_m','omega_res_w_l', 'omega_res_m_l','omega_res_w_l2', 'omega_res_m_l2', 'delta_omega_m','delta_omega_w','delta_omega_w_l', 'delta_omega_m_l','delta_omega_w_l2', 'delta_omega_m_l2', 'y_w', 'y_m', 'control_part_inc_w', 'control_part_inc_m', 'control_cons', 'delta_log_wealth','delta_log_wealth_l', 'delta_log_wealth_l2' ,'delta_log_fam_inc', 'log_fam_inc', 'log_wealth', 'log_fam_inc_l', 'log_wealth_l', 'wealth_F', 'log_earnings_w', 'log_earnings_m', 'log_earnings_w_l', 'log_earnings_m_l', 'delta_log_BMI_w', 'delta_log_BMI_m', 'delta_log_BMI_w_l', 'delta_log_BMI_m_l', 'delta_log_BMI_w_l2', 'delta_log_BMI_m_l2']]
-    
     return data
 
 def aux_est(data, par, print_reg = False):
@@ -245,7 +244,7 @@ def aux_est(data, par, print_reg = False):
     return data
 
 
-def main_est(data, gender = "w", do_estimate_omega = True, print_reg = False):
+def main_est(data, gender = "w", do_estimate_omega = True, print_reg = False, shadow_value_simple = True):
     #gender = w, woman, 
 
     if gender == "w":
@@ -280,7 +279,7 @@ def main_est(data, gender = "w", do_estimate_omega = True, print_reg = False):
     
     
     
-    data_regress = data[['t','init_barg','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_F',  f'y_{gender}', 'idx', 'wage_shock','wage_shock_l','wage_shock_l2','wage_shock_j','wage_shock_j_l','wage_shock_j_l2','BMI','BMI_l','BMI_l2','BMI_j','BMI_j_l','BMI_j_l2',f'control_part_inc_{gender}','control_cons','delta_log_wealth','delta_log_wealth_l','delta_log_wealth_l2']]
+    data_regress = data[['t','init_barg','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_F',  f'y_{gender}', 'idx', 'wage_shock','wage_shock_l','wage_shock_l2','wage_shock_j','wage_shock_j_l','wage_shock_j_l2','BMI','BMI_l','BMI_l2','BMI_j','BMI_j_l','BMI_j_l2',f'control_part_inc_{gender}','control_cons','delta_log_wealth','delta_log_wealth_l','delta_log_wealth_l2','delta_log_fam_inc', 'log_fam_inc_l', 'log_wealth_l']]
 
     #DROP NAN
     data_regress = data_regress.dropna() # det ser ud som om den ikke fjerner nogen
@@ -292,39 +291,42 @@ def main_est(data, gender = "w", do_estimate_omega = True, print_reg = False):
 
 
     #SHADOW VALUE: 
-    Shadow_value = data_regress[['t']]
-    #data_test['earbubgs'] = pd.qcut(data['log_wealth'], 10, labels = False) 
-    cat = ['log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_F']
-    
+    if shadow_value_simple: 
+        Shadow_value = data_regress[['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l']]
+    else:
+        Shadow_value = data_regress[['t']]
+        #data_test['earbubgs'] = pd.qcut(data['log_wealth'], 10, labels = False) 
+        cat = ['log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_F']
+        
 
 
-    for i in cat:
-        Shadow_value[i] = pd.qcut(data_regress[i], 10, labels = False, duplicates='raise') 
+        for i in cat:
+            Shadow_value[i] = pd.qcut(data_regress[i], 10, labels = False, duplicates='raise') 
 
-    Shadow_value['earnings_w_m'] = Shadow_value['log_earnings_w'].astype('str') + '_' + Shadow_value['log_earnings_m'].astype('str')
-    Shadow_value['earnings_w_m_l'] = Shadow_value['log_earnings_w_l'].astype('str') + '_' + Shadow_value['log_earnings_m_l'].astype('str')
-    Shadow_value['inc_share_n_l'] = Shadow_value['inc_share_w_l'].astype('str') + '_' + Shadow_value['inc_share_w'].astype('str')
-    Shadow_value['wealth_n_l'] = Shadow_value['log_wealth'].astype('str') + '_' + Shadow_value['wealth_F'].astype('str')
+        Shadow_value['earnings_w_m'] = Shadow_value['log_earnings_w'].astype('str') + '_' + Shadow_value['log_earnings_m'].astype('str')
+        Shadow_value['earnings_w_m_l'] = Shadow_value['log_earnings_w_l'].astype('str') + '_' + Shadow_value['log_earnings_m_l'].astype('str')
+        Shadow_value['inc_share_n_l'] = Shadow_value['inc_share_w_l'].astype('str') + '_' + Shadow_value['inc_share_w'].astype('str')
+        Shadow_value['wealth_n_l'] = Shadow_value['log_wealth'].astype('str') + '_' + Shadow_value['wealth_F'].astype('str')
 
-    Shadow_value = pd.get_dummies(Shadow_value, columns=['earnings_w_m', 'earnings_w_m_l', 'inc_share_n_l','wealth_n_l' ], drop_first = True, dtype = float)
-
-
-    #Drop if less than two
-    Shadow_value = Shadow_value.loc[:,(Shadow_value.sum()>2 )]
-    Shadow_value = Shadow_value.drop(columns = ['t','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth','wealth_F'])
-    #problem med næsten collinaritet i denne
+        Shadow_value = pd.get_dummies(Shadow_value, columns=['earnings_w_m', 'earnings_w_m_l', 'inc_share_n_l','wealth_n_l' ], drop_first = True, dtype = float)
 
 
-    df = data_regress.drop(columns = ['t','init_barg','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_F',  f'y_{gender}', 'idx'])
+        #Drop if less than two
+        Shadow_value = Shadow_value.loc[:,(Shadow_value.sum()>2 )]
+        Shadow_value = Shadow_value.drop(columns = ['t','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth','wealth_F'])
+
+
+
+    df = data_regress.drop(columns = ['t','init_barg','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_F',  f'y_{gender}', 'idx','delta_log_fam_inc', 'log_fam_inc_l', 'log_wealth_l'])
 
     #REGRESS
     y  = data_regress[f'y_{gender}']
     x = pd.concat([df,  X_t , Shadow_value], axis=1 )
-    #x = pd.concat([df,  X_t ], axis=1 )
+    x = x.T.drop_duplicates().T #drop duplicates
     x = sm.add_constant(x)  
     #result = sm.OLS(y,x).fit() 
     result = sm.OLS(y,x).fit().get_robustcov_results(cov_type = 'cluster', groups = data_regress['idx'])
-
+    N = result.nobs
     #SAVE WALD TEST
     Wald_FC = result.wald_test('(wage_shock_l=0, wage_shock_l2=0,wage_shock_j=0,wage_shock_j_l=0, wage_shock_j_l2=0, BMI=0, BMI_l=0, BMI_l2=0,BMI_j=0,BMI_j_l=0, BMI_j_l2=0,D_init_barg_0=0,D_init_barg_2=0)', use_f = True)
     Wald_NC = result.wald_test('(wage_shock_l=0, wage_shock_l2=0,               wage_shock_j_l=0, wage_shock_j_l2=0,        BMI_l=0, BMI_l2=0,        BMI_j_l=0, BMI_j_l2=0,D_init_barg_0=0,D_init_barg_2=0)', use_f = True)
@@ -343,5 +345,5 @@ def main_est(data, gender = "w", do_estimate_omega = True, print_reg = False):
 
     #FOR MAN!!
 
-    return  data_regress, Wald_FC, Wald_NC
+    return  data_regress, Wald_FC, Wald_NC, N
 

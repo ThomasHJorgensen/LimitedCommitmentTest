@@ -191,6 +191,25 @@ def figure_couple(model, var_list, t_list, i_A , i_Zw , i_Zm, i_HKw , i_HKm, i_L
 
 
 
+def plot_hist(gender, model_test, model_true, variable, models, path = 'output/'):
+
+    plt.hist(variable, bins=20, range= [0,1], density = True)
+    plt.xlabel(f'P value for $H_0^{{{model_test}}}$')
+    plt.axvline(x= 0.05, color = 'red')    
+    plt.ylabel('Density')
+    plt.title(f'Histogram, {model_true}, {gender}')
+    plt.savefig(f'{path}Wald_test{model_test}_TRUE{model_true}_{gender}_N{models.par.simN}.png')
+    plt.show()
+
+    
+    plt.hist(variable, bins=20, density = True, range= [0,1], cumulative=True)
+    plt.xlabel(f'P value for $H_0^{{{model_test}}}$')
+    plt.axvline(x= 0.05, color = 'red')    
+    plt.ylabel('Accumulated Density')
+    plt.title(f'Histogram Cumulative, {model_true}, {gender}')
+    plt.savefig(f'{path}Wald_test{model_test}_TRUE{model_true}_{gender}_N{models.par.simN}_cum.png')
+    plt.show()
+
 
 
 
