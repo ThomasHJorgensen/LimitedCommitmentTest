@@ -57,9 +57,17 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.wage_const_w = 0.01
         par.wage_const_m = 0.01
 
-        par.wage_K_w = 0.5
-        par.wage_K_m = 0.6
-        par.wage_K_m = 0.5
+
+        par.wage_K_w = 0.5 #model main
+        par.wage_K_m = 0.5 #model main
+
+        #par.wage_K_w = 0.5 #model1
+        #par.wage_K_m = 0.6 #model1
+
+        
+        #par.wage_K_w = 0.45 #model_NC2
+        #par.wage_K_m = 0.5
+
 
         par.lambdaa2 = 0.1 #HK return to work              
         par.lambdaa2_HK = 0.02  #HK return to work  
