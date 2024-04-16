@@ -23,23 +23,39 @@ def create_data(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulate
     data_nu = {}
     data   = pd.DataFrame()
 
-    wage_w      =  np.exp(model.par.wage_const_w +model.par.wage_K_w*model.sim.Kw)  
-    y_w         =  wage_w*model.sim.labor_w
-    wage_m      =  np.exp(model.par.wage_const_m+model.par.wage_K_m* model.sim.Km)
-    y_m         =  wage_m*model.sim.labor_m
+    
+
+    wage_w      =  np.exp(model.par.wage_const_w +model.par.wage_K_w*model.sim.Kw) +  np.random.uniform(-0.3,0.3, size=shape_sim)  #0.1 = small, 0.2 = big 0.3 bigger
+    wage_m      =  np.exp(model.par.wage_const_m+model.par.wage_K_m* model.sim.Km) +  np.random.uniform(-0.3,0.3, size=shape_sim)
+    
+    #wage_w      =  np.exp(model.par.wage_const_w +model.par.wage_K_w*model.sim.Kw)
+    #wage_m      =  np.exp(model.par.wage_const_m+model.par.wage_K_m* model.sim.Km)
+    
+    hours_w     = model.sim.labor_w + np.random.uniform(-0.2,0.2,size=shape_sim)  #0.1 = small, 0.2 = big 0,2  bigger 
+    hours_m     = model.sim.labor_m + np.random.uniform(-0.2,0.2, size=shape_sim)  #0.1 = small, 0.2 = big 0,2  bigger
+    hours_w     = np.maximum(0.0,np.minimum(1.0,hours_w))
+    hours_m     = np.maximum(0.0,np.minimum(1.0,hours_m))
+    #hours_w     = model.sim.labor_w 
+    #hours_m     = model.sim.labor_m 
+
+    y_w         =  wage_w*hours_w
+    y_m         =  wage_m*hours_m
     init_barg   =  model.sim.init_distr
     Z_w         =  model.sim.Zw 
     Z_m         =  model.sim.Zm 
-
+    wealth      = model.sim.A + np.random.uniform(-4.0,4.0, size=shape_sim) #0.1 = small, 1.0 = big 4.0 bigger
+    
+    #wealth      = model.sim.A
+   
     #TODO: OMEGA_W ER IKKE GENERELT!!! 
     for i in range(start_p, end_p): #use some periods in the middle of the simluation
         data_nu[i] = pd.DataFrame({
             'idx': range(1,model.par.simN+1) ,
             't' : i,
-            'wealth' : model.sim.A[:,i] ,
+            'wealth' : wealth[:,i] ,
             'couple': model.sim.couple[:,i],
-            'hours_w': model.sim.labor_w[:,i],
-            'hours_m': model.sim.labor_m[:,i],
+            'hours_w': hours_w[:,i],
+            'hours_m': hours_m[:,i],
             'cons': model.sim.cons_w[:,i],
             'wage_w': wage_w[:,i],
             'wage_m': wage_m[:,i],

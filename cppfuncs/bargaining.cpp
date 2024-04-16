@@ -331,8 +331,8 @@ namespace bargaining {
         for (int iP=0; iP<par->num_power; iP++){
             int idx = idx_couple->idx(iP);
 
-            // if((Sw[iP]<0.0)|(Sm[iP]<0.0)){
-            if((Sw[iP]+Sm[iP]<0.0)){ // transferable utility
+            if((Sw[iP]<0.0)|(Sm[iP]<0.0)){
+            //if((Sw[iP]+Sm[iP]<0.0)){ // transferable utility
                 for(int i=0;i<num;i++){
                     list_start_as_couple[i][idx] = list_trans_to_single[i];
                 }
