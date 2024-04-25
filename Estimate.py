@@ -5,8 +5,9 @@ import pandas as pd
 import scipy.optimize as optimize
 import statsmodels.api as sm
 
-def create_data(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulated_data',path='output/'):
+def create_data(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulated_data',path='output/', yerror = "norm", scale_st = 2.0):
     
+    #unpack
     par = model.par 
     sim = model.sim 
 
@@ -19,35 +20,48 @@ def create_data(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulate
     #simulate the data
     model.simulate()
 
-    #Save the data in a data frame
-    data_nu = {}
-    data   = pd.DataFrame()
+    #HOURS 
+    hours_w_orig = model.sim.labor_w 
+    hours_m_orig = model.sim.labor_m 
+    hours_w_std = np.nanstd(hours_w_orig)
+    hours_m_std = np.nanstd(hours_m_orig)
 
-    
+    #measurement error in y (hours)
+    if yerror == "norm":
+        #norm distributed
+        hours_w     =  hours_w_orig  + np.random.normal(scale=scale_st*hours_w_std, size=shape_sim) 
+        hours_m     =  hours_m_orig  + np.random.normal(scale=scale_st*hours_m_std, size=shape_sim) 
+    elif yerror == "uni":
+        #uniform distributed
+        hours_w     =  hours_w_orig  + np.random.uniform(-scale_st*hours_w_std,    scale_st*hours_w_std, size=shape_sim) 
+        hours_m     =  hours_m_orig  + np.random.uniform(-scale_st*hours_m_std,    scale_st*hours_m_std, size=shape_sim)
+    elif yerror == "none":
+        #no measurement error
+        hours_w     =  hours_w_orig   
+        hours_m     =  hours_m_orig  
+    else:
+        raise Exception("Yerror must be norm, uni or none")
 
-    wage_w      =  np.exp(model.par.wage_const_w +model.par.wage_K_w*model.sim.Kw) +  np.random.uniform(-0.3,0.3, size=shape_sim)  #0.1 = small, 0.2 = big 0.3 bigger
-    wage_m      =  np.exp(model.par.wage_const_m+model.par.wage_K_m* model.sim.Km) +  np.random.uniform(-0.3,0.3, size=shape_sim)
-    
-    #wage_w      =  np.exp(model.par.wage_const_w +model.par.wage_K_w*model.sim.Kw)
-    #wage_m      =  np.exp(model.par.wage_const_m+model.par.wage_K_m* model.sim.Km)
-    
-    hours_w     = model.sim.labor_w + np.random.uniform(-0.2,0.2,size=shape_sim)  #0.1 = small, 0.2 = big 0,2  bigger 
-    hours_m     = model.sim.labor_m + np.random.uniform(-0.2,0.2, size=shape_sim)  #0.1 = small, 0.2 = big 0,2  bigger
+    #ensure  hours is between 0 and 1
     hours_w     = np.maximum(0.0,np.minimum(1.0,hours_w))
     hours_m     = np.maximum(0.0,np.minimum(1.0,hours_m))
-    #hours_w     = model.sim.labor_w 
-    #hours_m     = model.sim.labor_m 
 
-    y_w         =  wage_w*hours_w
-    y_m         =  wage_m*hours_m
+    #Find the data
+    wage_w      =  np.exp(model.par.wage_const_w +model.par.wage_K_w*model.sim.Kw) 
+    wage_m      =  np.exp(model.par.wage_const_m+model.par.wage_K_m* model.sim.Km)  
+    y_w         =  wage_w*hours_w_orig
+    y_m         =  wage_m*hours_m_orig
     init_barg   =  model.sim.init_distr
     Z_w         =  model.sim.Zw 
     Z_m         =  model.sim.Zm 
-    wealth      = model.sim.A + np.random.uniform(-4.0,4.0, size=shape_sim) #0.1 = small, 1.0 = big 4.0 bigger
-    
-    #wealth      = model.sim.A
+    wealth      =  model.sim.A
+
+
+    #Save the data in a data frame
+    data_nu = {}
+    data   = pd.DataFrame()
    
-    #TODO: OMEGA_W ER IKKE GENERELT!!! 
+    #insert in dataframe
     for i in range(start_p, end_p): #use some periods in the middle of the simluation
         data_nu[i] = pd.DataFrame({
             'idx': range(1,model.par.simN+1) ,
@@ -71,16 +85,18 @@ def create_data(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulate
             'barganing': model.sim.power[:,i],
             'Love': model.sim.love[:,i],
             'exp_w': model.sim.exp_w[:,i],
-            'exp_m': model.sim.exp_m[:,i]
+            'exp_m': model.sim.exp_m[:,i], 
+            'wage_w_orig': wage_w[:,i],
+            'wage_m_orig': wage_m[:,i],
+            'hours_w_orig':   hours_w_orig[:,i],  
+            'hours_m_orig':   hours_m_orig[:,i],  
+            'wealth_orig' :    wealth[:,i]
+
         })
 
         
-
         #collect the data
         data = pd.concat([data,data_nu[i]] )
-
-
-    
 
 
     #sort data
@@ -88,16 +104,14 @@ def create_data(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulate
     if to_xl: 
         data.to_excel(f'{path}{name_xl}.xlsx')
 
-    #create variable
-    #data = create_variable(data)
-
 
     return data
 
 def create_variable(data, par, print_aux_reg = False):
     data = data.sort_values(by =['idx','t'])
 
-    data = data.drop(columns = ['Love','util','value','exp_w','exp_m','barganing'])
+    #Variable I do not use
+    data = data.drop(columns = ['util','value','exp_w','exp_m','barganing'])
 
 
     #change BMI to a 1-2 instead of 0 -1 (so I can take the logarithm)
@@ -108,20 +122,17 @@ def create_variable(data, par, print_aux_reg = False):
     data['omega_w'] = 1 + data['omega_w'] 
     data['omega_m'] = 1 + data['omega_m'] 
 
+    
+    #remove negative values
+    data['Love'] = 1 + data['Love'] 
 
-
-    ## change the period for wealth (from end og period to begining period)
-    #data['wealth_temp'] = data['wealth'].shift(-1)
-    #data['wealth_temp'] = np.where(data['t']== models.par.T-2, np.nan,data['wealth_temp'])
-
-        
     #drop if single
     data = data[data['couple']>0.5]
+    data = data.drop(columns = ['couple'])
+
+    #drop begining and end of period
     data = data[data['t']>8]
     data = data[data['t']<15]
-
-
-    data = data.drop(columns = ['couple'])
 
     #drop if not paricipating
     data = data[data['hours_w']>0.001]
@@ -132,14 +143,9 @@ def create_variable(data, par, print_aux_reg = False):
     data['inc_share_w'] = data['earnings_w']/data['fam_inc']
     data['inc_share_m'] = data['earnings_m']/data['fam_inc']
     
-    #create dummy 
-    #data['tt'] = data['t']
-    #data=pd.get_dummies(data, columns = ['tt'], prefix = 'D_t', dtype = float) 
-    #data=pd.get_dummies(data, columns = ['init_barg'], prefix = 'D_init_barg', dtype = float) 
-
 
     #transform with  lag 
-    list = ['t','idx','BMI_w', 'BMI_m', 'omega_w', 'omega_m', 'hours_w','hours_m', 'cons','wage_w','wage_m','earnings_w','earnings_m','fam_inc','wealth','inc_share_w','inc_share_m']
+    list = ['t','idx','BMI_w', 'BMI_m', 'omega_w', 'omega_m', 'hours_w','hours_m', 'cons','wage_w','wage_m','earnings_w','earnings_m','fam_inc','wealth','inc_share_w','inc_share_m', 'Love']
 
     data_l = data.loc[:,list]
     data_l['t'] = data_l['t']+1
@@ -155,7 +161,7 @@ def create_variable(data, par, print_aux_reg = False):
     data_F['t'] = data_F['t']-1
 
     #transfor with logs
-    list_log = ['BMI_w', 'BMI_m', 'hours_w','hours_m', 'cons','wage_w','wage_m','earnings_w','earnings_m','fam_inc','wealth','omega_w', 'omega_m']
+    list_log = ['BMI_w', 'BMI_m', 'hours_w','hours_m', 'cons','wage_w','wage_m','earnings_w','earnings_m','fam_inc','wealth','omega_w', 'omega_m', 'Love']
     #transfor with logs
     for val in list_log:
         # take the log
@@ -191,7 +197,7 @@ def create_variable(data, par, print_aux_reg = False):
     data = data.dropna(subset = ['delta_log_wage_w','delta_log_wage_m'])
 
     
-    #ESTIMATE OMEGA
+    #Estimate wage shocks from wage equation
     data = aux_est(data, par, print_reg = print_aux_reg)
     list = ['t','idx','omega_res_w', 'omega_res_m']
         
@@ -209,18 +215,7 @@ def create_variable(data, par, print_aux_reg = False):
     data =  data.merge(data_l3, how='left', left_on = ['t','idx'], right_on = ['t','idx'], suffixes=('', '_l3'))
  
 
-    
-    #vairable for regression
-    #X1 = data['omega_w']-data['omega_w_l']
-    #X2 = data['omega_m']-data['omega_m_l']
-    #X3 = data['delta_log_hours_w']*1/data['hours_w_l']
-    #X4 = data['delta_log_hours_m']*1/data['hours_m_l']
-    #X5 = data['inc_share_m']*data['delta_log_earnings_m']
-    #X6 = data['inc_share_w']*data['delta_log_earnings_w']
-    #X7 = data['cons_l']*data['delta_log_cons']
-
-    
-    #data = pd.concat([data, X1.rename('delta_omega_w'),X2.rename('delta_omega_m'),X3.rename('y_w'), X4.rename('y_m'), X5.rename('control_part_inc_w '), X6.rename('control_part_inc_m'), X7.rename('control_cons')],  axis = 1 ,ignore_index = True) #in issue from middle of marts, try to check later in april to see wheter it is still an issue
+    #Create variables
     data['delta_omega_w'] = data['log_omega_w']-data['log_omega_w_l']
     data['delta_omega_m'] = data['log_omega_m']-data['log_omega_m_l']    
     data['delta_omega_w_l'] = data['log_omega_w_l']-data['log_omega_w_l2']
@@ -233,8 +228,9 @@ def create_variable(data, par, print_aux_reg = False):
     data['control_part_inc_m'] = data['inc_share_w_l']*data['delta_log_earnings_w']
     data['control_cons'] = data['cons_l']*data['delta_log_cons']
 
+    #keep variable I need
+    data = data[['t','idx','init_barg', 'y_w', 'y_m', 'inc_share_w', 'inc_share_w_l', 'delta_log_wage_w','delta_log_wage_m','delta_log_wage_w_l','delta_log_wage_m_l','delta_log_wage_w_l2','delta_log_wage_m_l2', 'omega_res_w', 'omega_res_m','omega_res_w_l', 'omega_res_m_l','omega_res_w_l2', 'omega_res_m_l2', 'delta_omega_m','delta_omega_w','delta_omega_w_l', 'delta_omega_m_l','delta_omega_w_l2', 'delta_omega_m_l2', 'control_part_inc_w', 'control_part_inc_m', 'control_cons', 'delta_log_wealth','delta_log_wealth_l', 'delta_log_wealth_l2' ,'delta_log_fam_inc', 'log_fam_inc', 'log_wealth', 'log_fam_inc_l', 'log_fam_inc_l2', 'log_wealth_l','log_wealth_l2', 'wealth_F', 'log_earnings_w', 'log_earnings_m', 'log_earnings_w_l', 'log_earnings_m_l', 'delta_log_BMI_w', 'delta_log_BMI_m', 'delta_log_BMI_w_l', 'delta_log_BMI_m_l', 'delta_log_BMI_w_l2', 'delta_log_BMI_m_l2', 'delta_log_Love', 'delta_log_Love_l', 'delta_log_Love_l2']]
     
-    data = data[['t','idx','init_barg', 'y_w', 'y_m', 'inc_share_w', 'inc_share_w_l', 'delta_log_wage_w','delta_log_wage_m', 'omega_res_w', 'omega_res_m','omega_res_w_l', 'omega_res_m_l','omega_res_w_l2', 'omega_res_m_l2', 'delta_omega_m','delta_omega_w','delta_omega_w_l', 'delta_omega_m_l','delta_omega_w_l2', 'delta_omega_m_l2', 'control_part_inc_w', 'control_part_inc_m', 'control_cons', 'delta_log_wealth','delta_log_wealth_l', 'delta_log_wealth_l2' ,'delta_log_fam_inc', 'log_fam_inc', 'log_wealth', 'log_fam_inc_l', 'log_wealth_l', 'wealth_F', 'log_earnings_w', 'log_earnings_m', 'log_earnings_w_l', 'log_earnings_m_l', 'delta_log_BMI_w', 'delta_log_BMI_m', 'delta_log_BMI_w_l', 'delta_log_BMI_m_l', 'delta_log_BMI_w_l2', 'delta_log_BMI_m_l2']]
     return data
 
 def aux_est(data, par, print_reg = False):
@@ -262,30 +258,43 @@ def aux_est(data, par, print_reg = False):
     return data
 
 
-def main_est(data, gender = "w", do_estimate_omega = True, print_reg = False, shadow_value_simple = 1):
-    #gender = w, woman, 
+def main_est(data, gender = "w", do_estimate_wage = "est_omega", print_reg = False, shadow_value_simple = 1, do_control_love = False):
+    #TODO tillad for at man kun tester på baggrund af en time varying distributinal faktor
 
+    #Find the gender and the gender of the spouse
     if gender == "w":
         spouse = "m"
-    else:
+    elif gender =='m':
         spouse = "w"
-        gender = "m"
+    else: 
+        raise Exception("Gender must be m or w")
 
-    if do_estimate_omega:
+    #Find time varying distirbutional facto
+    if do_estimate_wage == "est_omega":
         data['wage_shock']=data[f'omega_res_{gender}']
         data['wage_shock_l']=data[f'omega_res_{gender}_l']
         data['wage_shock_l2']=data[f'omega_res_{gender}_l2']
         data['wage_shock_j']=data[f'omega_res_{spouse}']
         data['wage_shock_j_l']=data[f'omega_res_{spouse}_l']
         data['wage_shock_j_l2']=data[f'omega_res_{spouse}_l2']
-    else:
+    elif do_estimate_wage == "true_omega":
         data['wage_shock']=data[f'delta_omega_{gender}']
         data['wage_shock_l']=data[f'delta_omega_{gender}_l']
         data['wage_shock_l2']=data[f'delta_omega_{gender}_l2']
         data['wage_shock_j']=data[f'delta_omega_{spouse}']
         data['wage_shock_j_l']=data[f'delta_omega_{spouse}_l']
         data['wage_shock_j_l2']=data[f'delta_omega_{spouse}_l2']
+    elif do_estimate_wage == "wage":
+        data['wage_shock']=data[f'delta_log_wage_{gender}']
+        data['wage_shock_l']=data[f'delta_log_wage_{gender}_l']
+        data['wage_shock_l2']=data[f'delta_log_wage_{gender}_l2']
+        data['wage_shock_j']=data[f'delta_log_wage_{spouse}']
+        data['wage_shock_j_l']=data[f'delta_log_wage_{spouse}_l']
+        data['wage_shock_j_l2']=data[f'delta_log_wage_{spouse}_l2']
+    else: 
+        raise Exception("do_estimate_wage must be est_omega, true_omega, wage")
 
+  
     data['BMI'] = data[f'delta_log_BMI_{gender}']
     data['BMI_l'] = data[f'delta_log_BMI_{gender}_l']
     data['BMI_l2'] = data[f'delta_log_BMI_{gender}_l2']
@@ -296,7 +305,7 @@ def main_est(data, gender = "w", do_estimate_omega = True, print_reg = False, sh
     
     
     
-    data_regress = data[['t','init_barg','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_F',  f'y_{gender}', 'idx', 'wage_shock','wage_shock_l','wage_shock_l2','wage_shock_j','wage_shock_j_l','wage_shock_j_l2','BMI','BMI_l','BMI_l2','BMI_j','BMI_j_l','BMI_j_l2',f'control_part_inc_{gender}','control_cons','delta_log_wealth','delta_log_wealth_l','delta_log_wealth_l2','delta_log_fam_inc', 'log_fam_inc' , 'log_fam_inc_l', 'log_wealth_l']]
+    data_regress = data[['t','init_barg','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_F',  f'y_{gender}', 'idx', 'wage_shock','wage_shock_l','wage_shock_l2','wage_shock_j','wage_shock_j_l','wage_shock_j_l2','BMI','BMI_l','BMI_l2','BMI_j','BMI_j_l','BMI_j_l2',f'control_part_inc_{gender}','control_cons','delta_log_wealth','delta_log_wealth_l','delta_log_wealth_l2','delta_log_Love','delta_log_Love_l','delta_log_Love_l2','delta_log_fam_inc', 'log_fam_inc' , 'log_fam_inc_l', 'log_fam_inc_l2', 'log_wealth_l', 'log_wealth_l2']]
 
     #DROP NAN
     data_regress = data_regress.dropna() # det ser ud som om den ikke fjerner nogen
@@ -318,7 +327,7 @@ def main_est(data, gender = "w", do_estimate_omega = True, print_reg = False, sh
         cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l']
     
         for i in cat:
-            Shadow_value[i] = pd.qcut(data_regress[i], 20, labels = False, duplicates='raise') 
+            Shadow_value[i] = pd.qcut(data_regress[i], 100, labels = False, duplicates='raise') 
 
         Shadow_value = pd.get_dummies(Shadow_value, columns=['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l' ], drop_first = True, dtype = float)
 
@@ -330,28 +339,29 @@ def main_est(data, gender = "w", do_estimate_omega = True, print_reg = False, sh
 
     elif shadow_value_simple == 3:
         Shadow_value = data_regress[['t']]
-        cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l']
+        cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l', 'log_fam_inc_l2', 'log_wealth_l2']
         
 
 
         for i in cat:
             Shadow_value[i] = pd.qcut(data_regress[i], 20, labels = False, duplicates='raise') 
 
-        Shadow_value['fam_inc'] = Shadow_value['delta_log_fam_inc'].astype('str') + '_' + Shadow_value['log_fam_inc_l'].astype('str')
-        Shadow_value['wealth'] =  Shadow_value['delta_log_wealth'].astype('str') + '_' + Shadow_value['log_wealth_l'].astype('str')
+        #Shadow_value['fam_inc'] = Shadow_value['delta_log_fam_inc'].astype('str') + '_' + Shadow_value['log_fam_inc_l'].astype('str')
+        #Shadow_value['wealth'] =  Shadow_value['delta_log_wealth'].astype('str') + '_' + Shadow_value['log_wealth_l'].astype('str')
 
-        Shadow_value = pd.get_dummies(Shadow_value, columns=['fam_inc', 'wealth'], drop_first = True, dtype = float)
+        #Shadow_value = pd.get_dummies(Shadow_value, columns=['fam_inc', 'wealth'], drop_first = True, dtype = float)
+        Shadow_value = pd.get_dummies(Shadow_value, columns=['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l', 'log_fam_inc_l2', 'log_wealth_l2'], drop_first = True, dtype = float)
 
         #Drop if less than two
         Shadow_value = Shadow_value.loc[:,(Shadow_value.sum()>2 )]
-        Shadow_value = Shadow_value.drop(columns = ['t','delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l'])
+        #Shadow_value = Shadow_value.drop(columns = ['t','delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l', 'log_fam_inc_l2', 'log_wealth_l2'])
 
 
     elif shadow_value_simple == 4:
         Shadow_value = data_regress[['t']]
         #data_test['earbubgs'] = pd.qcut(data['log_wealth'], 10, labels = False) 
-        #cat = ['log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_l']
         cat = ['log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l', 'log_wealth', 'log_wealth_l']
+        #cat = ['log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l',  'log_wealth', 'log_wealth_l']
         
 
 
@@ -365,15 +375,21 @@ def main_est(data, gender = "w", do_estimate_omega = True, print_reg = False, sh
         Shadow_value['wealth_n_l'] = Shadow_value['log_wealth'].astype('str') + '_' + Shadow_value['log_wealth_l'].astype('str')
 
         Shadow_value = pd.get_dummies(Shadow_value, columns=['earnings_w_w', 'earnings_m_m', 'inc_share_n_l','wealth_n_l' ], drop_first = True, dtype = float)
+        #Shadow_value = pd.get_dummies(Shadow_value, columns=['earnings_w_w', 'earnings_m_m', 'wealth_n_l' ], drop_first = True, dtype = float)
 
 
         #Drop if less than two
         Shadow_value = Shadow_value.loc[:,(Shadow_value.sum()>2 )]
         Shadow_value = Shadow_value.drop(columns = ['t', 'log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth','log_wealth_l'])
+        #Shadow_value = Shadow_value.drop(columns = ['t', 'log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'log_wealth','log_wealth_l'])
+    else:
+        raise Exception("shadow_value_simple must be 1, 2, 3 or 4")
 
 
-
-    df = data_regress.drop(columns = ['t','init_barg','log_earnings_w', 'log_fam_inc' , 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_F',  f'y_{gender}', 'idx','delta_log_fam_inc', 'log_fam_inc_l', 'log_wealth_l', 'delta_log_wealth'])
+    df = data_regress.drop(columns = ['t','init_barg','log_earnings_w', 'log_fam_inc' , 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_F',  f'y_{gender}', 'idx','delta_log_fam_inc', 'log_fam_inc_l', 'log_wealth_l', 'log_fam_inc_l2', 'log_wealth_l2', 'delta_log_wealth'])
+    if not do_control_love:
+         df = df.drop(columns = ['delta_log_Love','delta_log_Love_l','delta_log_Love_l2'])
+    
 
     #REGRESS
     y  = data_regress[f'y_{gender}']
