@@ -111,7 +111,7 @@ def create_variable(data, par, print_aux_reg = False):
     data = data.sort_values(by =['idx','t'])
 
     #Variable I do not use
-    data = data.drop(columns = ['util','value','exp_w','exp_m','barganing'])
+    data = data.drop(columns = ['util','value','exp_w','exp_m'])
 
 
     #change BMI to a 1-2 instead of 0 -1 (so I can take the logarithm)
@@ -131,8 +131,10 @@ def create_variable(data, par, print_aux_reg = False):
     data = data.drop(columns = ['couple'])
 
     #drop begining and end of period
-    data = data[data['t']>8]
-    data = data[data['t']<15]
+    #data = data[data['t']>8]
+    #data = data[data['t']<15]
+    data = data[data['t']>4]
+    data = data[data['t']<16]
 
     #drop if not paricipating
     data = data[data['hours_w']>0.001]
@@ -229,7 +231,7 @@ def create_variable(data, par, print_aux_reg = False):
     data['control_cons'] = data['cons_l']*data['delta_log_cons']
 
     #keep variable I need
-    data = data[['t','idx','init_barg', 'y_w', 'y_m', 'inc_share_w', 'inc_share_w_l', 'delta_log_wage_w','delta_log_wage_m','delta_log_wage_w_l','delta_log_wage_m_l','delta_log_wage_w_l2','delta_log_wage_m_l2', 'omega_res_w', 'omega_res_m','omega_res_w_l', 'omega_res_m_l','omega_res_w_l2', 'omega_res_m_l2', 'delta_omega_m','delta_omega_w','delta_omega_w_l', 'delta_omega_m_l','delta_omega_w_l2', 'delta_omega_m_l2', 'control_part_inc_w', 'control_part_inc_m', 'control_cons', 'delta_log_wealth','delta_log_wealth_l', 'delta_log_wealth_l2' ,'delta_log_fam_inc', 'log_fam_inc', 'log_wealth', 'log_fam_inc_l', 'log_fam_inc_l2', 'log_wealth_l','log_wealth_l2', 'wealth_F', 'log_earnings_w', 'log_earnings_m', 'log_earnings_w_l', 'log_earnings_m_l', 'delta_log_BMI_w', 'delta_log_BMI_m', 'delta_log_BMI_w_l', 'delta_log_BMI_m_l', 'delta_log_BMI_w_l2', 'delta_log_BMI_m_l2', 'delta_log_Love', 'delta_log_Love_l', 'delta_log_Love_l2']]
+    #data = data[['t','idx','init_barg', 'y_w', 'y_m', 'inc_share_w', 'inc_share_w_l', 'delta_log_wage_w','delta_log_wage_m','delta_log_wage_w_l','delta_log_wage_m_l','delta_log_wage_w_l2','delta_log_wage_m_l2', 'omega_res_w', 'omega_res_m','omega_res_w_l', 'omega_res_m_l','omega_res_w_l2', 'omega_res_m_l2', 'delta_omega_m','delta_omega_w','delta_omega_w_l', 'delta_omega_m_l','delta_omega_w_l2', 'delta_omega_m_l2', 'control_part_inc_w', 'control_part_inc_m', 'control_cons', 'delta_log_wealth','delta_log_wealth_l', 'delta_log_wealth_l2' ,'delta_log_fam_inc', 'log_fam_inc', 'log_wealth', 'log_fam_inc_l', 'log_fam_inc_l2', 'log_wealth_l','log_wealth_l2', 'wealth_F', 'log_earnings_w', 'log_earnings_m', 'log_earnings_w_l', 'log_earnings_m_l', 'delta_log_BMI_w', 'delta_log_BMI_m', 'delta_log_BMI_w_l', 'delta_log_BMI_m_l', 'delta_log_BMI_w_l2', 'delta_log_BMI_m_l2', 'delta_log_Love', 'delta_log_Love_l', 'delta_log_Love_l2']]
     
     return data
 
@@ -334,54 +336,50 @@ def main_est(data, gender = "w", do_estimate_wage = "est_omega", print_reg = Fal
 
         #Drop if less than two
         Shadow_value = Shadow_value.loc[:,(Shadow_value.sum()>2 )]
+        Shadow_value = Shadow_value.drop(columns = ['t'])
+
 
 
 
     elif shadow_value_simple == 3:
-        Shadow_value = data_regress[['t']]
-        cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l', 'log_fam_inc_l2', 'log_wealth_l2']
         
-
-
+        Shadow_value = data_regress[['t']]
+        cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l']
+    
         for i in cat:
-            Shadow_value[i] = pd.qcut(data_regress[i], 20, labels = False, duplicates='raise') 
+            Shadow_value[i] = pd.qcut(data_regress[i], 200, labels = False, duplicates='raise') 
 
-        #Shadow_value['fam_inc'] = Shadow_value['delta_log_fam_inc'].astype('str') + '_' + Shadow_value['log_fam_inc_l'].astype('str')
-        #Shadow_value['wealth'] =  Shadow_value['delta_log_wealth'].astype('str') + '_' + Shadow_value['log_wealth_l'].astype('str')
+        Shadow_value = pd.get_dummies(Shadow_value, columns=['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l' ], drop_first = True, dtype = float)
 
-        #Shadow_value = pd.get_dummies(Shadow_value, columns=['fam_inc', 'wealth'], drop_first = True, dtype = float)
-        Shadow_value = pd.get_dummies(Shadow_value, columns=['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l', 'log_fam_inc_l2', 'log_wealth_l2'], drop_first = True, dtype = float)
 
         #Drop if less than two
         Shadow_value = Shadow_value.loc[:,(Shadow_value.sum()>2 )]
-        #Shadow_value = Shadow_value.drop(columns = ['t','delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l', 'log_fam_inc_l2', 'log_wealth_l2'])
+        Shadow_value = Shadow_value.drop(columns = ['t'])
+
 
 
     elif shadow_value_simple == 4:
+        
         Shadow_value = data_regress[['t']]
-        #data_test['earbubgs'] = pd.qcut(data['log_wealth'], 10, labels = False) 
-        cat = ['log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l', 'log_wealth', 'log_wealth_l']
-        #cat = ['log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l',  'log_wealth', 'log_wealth_l']
-        
-
-
+        cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l']
+    
         for i in cat:
-            Shadow_value[i] = pd.qcut(data_regress[i], 10, labels = False, duplicates='raise') 
+            Shadow_value[i] = pd.qcut(data_regress[i], 50, labels = False, duplicates='raise') 
 
-        Shadow_value['earnings_m_m'] = Shadow_value['log_earnings_m_l'].astype('str') + '_' + Shadow_value['log_earnings_m'].astype('str')
-        Shadow_value['earnings_w_w'] = Shadow_value['log_earnings_w_l'].astype('str') + '_' + Shadow_value['log_earnings_w'].astype('str')
         
-        Shadow_value['inc_share_n_l'] = Shadow_value['inc_share_w_l'].astype('str') + '_' + Shadow_value['inc_share_w'].astype('str')
-        Shadow_value['wealth_n_l'] = Shadow_value['log_wealth'].astype('str') + '_' + Shadow_value['log_wealth_l'].astype('str')
+        Shadow_value['delta_log_fam_inc_t'] = Shadow_value['delta_log_fam_inc'].astype('str') + '_' + Shadow_value[ 't'].astype('str')
+        Shadow_value['delta_log_wealth_t'] = Shadow_value['delta_log_wealth'].astype('str') + '_' + Shadow_value[ 't'].astype('str')
+        Shadow_value['log_fam_inc_l_t'] = Shadow_value['log_fam_inc_l'].astype('str') + '_' + Shadow_value[ 't'].astype('str')
+        Shadow_value['log_wealth_l_t'] = Shadow_value['log_wealth_l'].astype('str') + '_' + Shadow_value[ 't'].astype('str')
 
-        Shadow_value = pd.get_dummies(Shadow_value, columns=['earnings_w_w', 'earnings_m_m', 'inc_share_n_l','wealth_n_l' ], drop_first = True, dtype = float)
-        #Shadow_value = pd.get_dummies(Shadow_value, columns=['earnings_w_w', 'earnings_m_m', 'wealth_n_l' ], drop_first = True, dtype = float)
+        Shadow_value = pd.get_dummies(Shadow_value, columns=['delta_log_fam_inc_t', 'delta_log_wealth_t', 'log_fam_inc_l_t', 'log_wealth_l_t' ], drop_first = True, dtype = float)
+
 
 
         #Drop if less than two
         Shadow_value = Shadow_value.loc[:,(Shadow_value.sum()>2 )]
-        Shadow_value = Shadow_value.drop(columns = ['t', 'log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth','log_wealth_l'])
-        #Shadow_value = Shadow_value.drop(columns = ['t', 'log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'log_wealth','log_wealth_l'])
+        Shadow_value = Shadow_value.drop(columns = ['t', 'delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l'])
+
     else:
         raise Exception("shadow_value_simple must be 1, 2, 3 or 4")
 
