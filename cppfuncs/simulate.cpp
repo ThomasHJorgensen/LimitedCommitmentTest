@@ -90,87 +90,87 @@ namespace sim {
     } // limited_commitment
 
     
-    double nash(int t,int idx_sol, int iZw, int iZm, double Vw_single,double Vm_single, double love,double A_lag,double Aw_lag,double Am_lag,double Kw, double Km, sol_struct* sol,par_struct* par){
+    // double nash(int t,int idx_sol, int iZw, int iZm, double Vw_single,double Vm_single, double love,double A_lag,double Aw_lag,double Am_lag,double Kw, double Km, sol_struct* sol,par_struct* par){
         
-        double power = -1.0; // initialize as divorce
+    //     double power = -1.0; // initialize as divorce
 
-        // find (discrete) max amd store vectors of surpluses
-        double* Sm = new double[par->num_power];
-        double* Sw = new double[par->num_power];
+    //     // find (discrete) max amd store vectors of surpluses
+    //     double* Sm = new double[par->num_power];
+    //     double* Sw = new double[par->num_power];
 
-        double obj_max = -1.0e10;
-        int iP_max = -1;
+    //     double obj_max = -1.0e10;
+    //     int iP_max = -1;
 
-        int j_love = tools::binary_search(0,par->num_love,par->grid_love,love); 
-        int j_A = tools::binary_search(0,par->num_A,par->grid_A,A_lag);
-        int j_Kw = tools::binary_search(0,par->num_K,par->grid_K,Kw);
-        int j_Km = tools::binary_search(0,par->num_K,par->grid_K,Km);
-        for (int iP=0; iP<par->num_power; iP++){
-            // value of remaining a couple. 
-            int idx_sol = index::couple(t,iZw, iZm,iP,0,0,0,0,par); 
-            double Vw_couple,Vm_couple;
-            tools::_interp_4d_2out(&Vw_couple,&Vm_couple,par->grid_love,par->grid_A,par->grid_K,par->grid_K, par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_remain_couple[idx_sol],&sol->Vm_remain_couple[idx_sol],love,A_lag,Kw,Km,j_love,j_A,j_Kw,j_Km);
+    //     int j_love = tools::binary_search(0,par->num_love,par->grid_love,love); 
+    //     int j_A = tools::binary_search(0,par->num_A,par->grid_A,A_lag);
+    //     int j_Kw = tools::binary_search(0,par->num_K,par->grid_K,Kw);
+    //     int j_Km = tools::binary_search(0,par->num_K,par->grid_K,Km);
+    //     for (int iP=0; iP<par->num_power; iP++){
+    //         // value of remaining a couple. 
+    //         int idx_sol = index::couple(t,iZw, iZm,iP,0,0,0,0,par); 
+    //         double Vw_couple,Vm_couple;
+    //         tools::_interp_4d_2out(&Vw_couple,&Vm_couple,par->grid_love,par->grid_A,par->grid_K,par->grid_K, par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_remain_couple[idx_sol],&sol->Vm_remain_couple[idx_sol],love,A_lag,Kw,Km,j_love,j_A,j_Kw,j_Km);
             
-            // marital surplus
-            Sw[iP] = couple::calc_marital_surplus(Vw_couple,Vw_single,par);
-            Sm[iP] = couple::calc_marital_surplus(Vm_couple,Vm_single,par);
+    //         // marital surplus
+    //         Sw[iP] = couple::calc_marital_surplus(Vw_couple,Vw_single,par);
+    //         Sm[iP] = couple::calc_marital_surplus(Vm_couple,Vm_single,par);
 
-            if((Sw[iP]>0.0) & (Sm[iP]>0.0)){
+    //         if((Sw[iP]>0.0) & (Sm[iP]>0.0)){
             
-                double obj_now = sqrt(Sw[iP]) * sqrt(Sm[iP]);
+    //             double obj_now = sqrt(Sw[iP]) * sqrt(Sm[iP]);
                 
-                if(obj_now>obj_max){
-                    obj_max = obj_now;
-                    iP_max = iP;
-                }
-            }
-        }
+    //             if(obj_now>obj_max){
+    //                 obj_max = obj_now;
+    //                 iP_max = iP;
+    //             }
+    //         }
+    //     }
 
-        // continuous nash bargaining using discrete as starting point (if anything feasable)
-        if(iP_max>-1){
-            double minf=0.0;
-            int const dim = 1;
-            double lb[dim],ub[dim],y[dim];
+    //     // continuous nash bargaining using discrete as starting point (if anything feasable)
+    //     if(iP_max>-1){
+    //         double minf=0.0;
+    //         int const dim = 1;
+    //         double lb[dim],ub[dim],y[dim];
             
-            auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
+    //         auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
 
-            // bounds
-            lb[0] = 0.0;
-            ub[0] = 1.0;
-            nlopt_set_lower_bounds(opt, lb);
-            nlopt_set_upper_bounds(opt, ub);
+    //         // bounds
+    //         lb[0] = 0.0;
+    //         ub[0] = 1.0;
+    //         nlopt_set_lower_bounds(opt, lb);
+    //         nlopt_set_upper_bounds(opt, ub);
 
-            nlopt_set_ftol_rel(opt,1.0e-5);
-            nlopt_set_xtol_rel(opt,1.0e-5);
+    //         nlopt_set_ftol_rel(opt,1.0e-5);
+    //         nlopt_set_xtol_rel(opt,1.0e-5);
 
-            bargaining::solver_struct_nash* solver_data = new bargaining::solver_struct_nash;
-            solver_data->par = par;
-            solver_data->Sw = Sw;
-            solver_data->Sm = Sm;
-            nlopt_set_min_objective(opt, bargaining::obj_nash, solver_data); 
+    //         bargaining::solver_struct_nash* solver_data = new bargaining::solver_struct_nash;
+    //         solver_data->par = par;
+    //         solver_data->Sw = Sw;
+    //         solver_data->Sm = Sm;
+    //         nlopt_set_min_objective(opt, bargaining::obj_nash, solver_data); 
 
-            // optimize
-            y[0] = par->grid_power[iP_max];
-            nlopt_optimize(opt, y, &minf); 
+    //         // optimize
+    //         y[0] = par->grid_power[iP_max];
+    //         nlopt_optimize(opt, y, &minf); 
 
-            // destroy optimizer
-            nlopt_destroy(opt);
+    //         // destroy optimizer
+    //         nlopt_destroy(opt);
 
-            power = y[0];
+    //         power = y[0];
 
-        } else {
+    //     } else {
             
-            power = -1.0; // divorce
-        }
+    //         power = -1.0; // divorce
+    //     }
 
-        // delete memory
-        delete Sw;
-        delete Sm;
+    //     // delete memory
+    //     delete Sw;
+    //     delete Sm;
 
-        // return power
-        return power;
+    //     // return power
+    //     return power;
 
-    } // nash
+    // } // nash
 
 
     double update_power(int t, int iZw, int iZm, double power_lag, double love,double A_lag,double Aw_lag,double Am_lag,double Kw, double Km, sol_struct* sol, par_struct* par,int bargaining){
@@ -196,8 +196,8 @@ namespace sim {
 
         } else if(bargaining==2){ // NASH
 
-            return nash(t,idx_sol,iZw, iZm, Vw_single,Vm_single, love,A_lag,Aw_lag,Am_lag,Kw,Km,sol,par);
-            
+            //return nash(t,idx_sol,iZw, iZm, Vw_single,Vm_single, love,A_lag,Aw_lag,Am_lag,Kw,Km,sol,par);
+            return bargaining::calc_bargaining_weight(t,love,Aw_lag,Am_lag,Kw,Km,iZw,iZm,sol,par);
 
         } else { // limited commitment
 

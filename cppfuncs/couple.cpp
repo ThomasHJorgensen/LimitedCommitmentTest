@@ -494,9 +494,33 @@ namespace couple {
 
                                         bargaining::limited_commitment(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
                                     
-                                    } else if(bargaining==2){ // no commitment, Nash (equal weight, discrete)
+                                    } else if(bargaining==2){ // no commitment, Nash cooperation
 
-                                        bargaining::nash(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
+                                        // bargaining::nash(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
+                                        double love = par->grid_love[iL];
+                                        double Aw = par->grid_Aw[iA];
+                                        double Am = par->grid_Am[iA];
+                                        double Kw = par->grid_K[iKw];
+                                        double Km = par->grid_K[iKm];
+
+                                        double power = bargaining::calc_bargaining_weight(t,love,Aw,Am,Kw,Km,iZw,iZm,sol,par);
+                                        
+                                        for (int iP=0; iP<par->num_power; iP++){ // constant power across the grid.
+                                            int idx_out = index::couple(t,iZw,iZm,iP,iL,iA,iKw,iKm,par);
+                                            
+                                            sol->power[idx_out] = power;
+                                            for (i=0; i<num;i++){ // loop through list and fill out
+
+                                                if (power<0.0){  // divorce
+                                                    list_start_as_couple[i][idx_out] = list_trans_to_single[i];
+                                                } else {
+                                                    int iP_interp = tools::binary_search(0, par->num_power, par->grid_power, power);
+                                                    // int iP_interp = MIN(par->num_power-1 , 1 + tools::binary_search(0, par->num_power, par->grid_power, power));
+                                                    int idx_interp = index::couple(t,iZw,iZm,iP_interp,iL,iA,iKw,iKm,par); // now use the point below->could interpolate!
+                                                    list_start_as_couple[i][idx_out] = list_remain_couple[i][idx_interp];
+                                                }
+                                            }
+                                        }
                                     
                                     } else { // no bargaining - full commitment
 

@@ -250,21 +250,16 @@ void interp_2d_2out(double* grid1,double* grid2,int num1, int num2,double* value
     interp_2d_2out_index(grid1,grid2,num2,value1,value2,xi1,xi2,j1,j2,out1,out2);
 }
 
+double _interp_2d(double* grid1,double* grid2,int num1, int num2,double* value,double xi1,double xi2,int j1,int j2){
 
-double interp_2d(double* grid1,double* grid2,int num1, int num2,double* value,double xi1,double xi2){
-    
-    // a. search in each dimension
-    int j1 = binary_search(0,num1,grid1,xi1);
-    int j2 = binary_search(0,num2,grid2,xi2);
-
-    // b. left/right
+    // a. left/right
     double nom_1_left = grid1[j1+1]-xi1;
     double nom_1_right = xi1-grid1[j1];
 
     double nom_2_left = grid2[j2+1]-xi2;
     double nom_2_right = xi2-grid2[j2];
 
-    // c. interpolation
+    // b. interpolation
     double denom = (grid1[j1+1]-grid1[j1])*(grid2[j2+1]-grid2[j2]);
 
     double nom = 0.0;
@@ -277,11 +272,20 @@ double interp_2d(double* grid1,double* grid2,int num1, int num2,double* value,do
             if (k2==1){ nom_2 = nom_2_right;}
 
             int idx = index::index2(j1+k1,j2+k2,num1,num2);
-            nom += nom_1*nom_2*value[idx]; //value[(j1+k1)*num2 + j2+k2];
+            nom += nom_1*nom_2*value[idx];
         }
     }
 
     return nom/denom;
+}
+
+double interp_2d(double* grid1,double* grid2,int num1, int num2,double* value,double xi1,double xi2){
+    
+    // a. search in each dimension
+    int j1 = binary_search(0,num1,grid1,xi1);
+    int j2 = binary_search(0,num2,grid2,xi2);
+
+    return _interp_2d(grid1,grid2,num1,num2,value,xi1,xi2,j1,j2);
 }
 
 

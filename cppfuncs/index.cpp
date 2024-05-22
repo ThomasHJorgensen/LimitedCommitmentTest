@@ -88,5 +88,25 @@ namespace index {
         
     } index_couple_struct;
 
+    typedef struct{
+            // state levels
+            int t;
+            double love;
+            double A;
+            double power;
+            double Kw;
+            double Km;
+
+            // indices
+            int iZw;
+            int iZm;
+    } state_couple_struct;
+
+    typedef struct{
+            // state levels
+            int t;
+            double A;
+    } state_single_struct;
+
     
 }
