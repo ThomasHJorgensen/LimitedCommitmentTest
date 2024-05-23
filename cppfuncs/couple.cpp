@@ -54,97 +54,94 @@ namespace couple {
         #pragma omp parallel num_threads(par->threads)
         {
         #pragma omp for
-        
-        for (int iL=0; iL<par->num_love; iL++){
+        for (int ij=0; ij<par->num_love*par->num_Z*par->num_Z; ij++){
+            int iL = par->idx_par_love[ij];
+            int iZw = par->idx_par_Zw[ij];
+            int iZm = par->idx_par_Zm[ij];
+                    
+            int idx_Zm = index::index2(iZm,0,par->num_Z,par->num_Z);
+            double* grid_weight_Zm = &par->grid_weight_Z[idx_Zm];
+
+            int idx_Zw = index::index2(iZw,0,par->num_Z,par->num_Z);
+            double* grid_weight_Zw = &par->grid_weight_Z[idx_Zw];
+
             double love = par->grid_love[iL];
             for (int iP=0; iP<par->num_power; iP++){
-                
-                for (int iZw=0; iZw<par->num_Z; iZw++){
-                    int idx_Zw = index::index2(iZw,0,par->num_Z,par->num_Z);
-                    double* grid_weight_Zw = &par->grid_weight_Z[idx_Zw];
-                    for (int iZm=0; iZm<par->num_Z; iZm++){
-                        int idx_Zm = index::index2(iZm,0,par->num_Z,par->num_Z);
-                        double* grid_weight_Zm = &par->grid_weight_Z[idx_Zm];
+                int jA = 0;
+                for (int iA=0; iA<par->num_A_pd; iA++){
+                    double A_next = par->grid_A_pd[iA];
+                    jA = tools::binary_search(jA,par->num_A,par->grid_A,A_next);
 
-                        int jA = 0;
-                        for (int iA=0; iA<par->num_A_pd; iA++){
-                            double A_next = par->grid_A_pd[iA];
-                            jA = tools::binary_search(jA,par->num_A,par->grid_A,A_next);
-
-                            for (int iKw=0; iKw<par->num_K_pd; iKw++){
+                    for (int iKw=0; iKw<par->num_K_pd; iKw++){
+                        
+                        double Kbar_w = 0.0;
+                        if (par->do_HK){
+                            Kbar_w = par->grid_K_pd[iKw];
+                        }
+                        else {
+                            Kbar_w = utils::K_bar(0.0,0.0,t_next,par);
+                        }
+                        for (int iKm=0; iKm<par->num_K_pd; iKm++){
                                 
-                                double Kbar_w = 0.0;
-                                if (par->do_HK){
-                                    Kbar_w = par->grid_K_pd[iKw];
-                                }
-                                else {
-                                    Kbar_w = utils::K_bar(0.0,0.0,t_next,par);
-                                }
-                                for (int iKm=0; iKm<par->num_K_pd; iKm++){
-                                        
-                                    double Kbar_m = 0.0;
-                                    if (par->do_HK){
-                                        Kbar_m = par->grid_K_pd[iKm];
-                                    }
-                                    else {
-                                        Kbar_m = utils::K_bar(0.0,0.0,t_next,par);
-                                    }
-                            
+                            double Kbar_m = 0.0;
+                            if (par->do_HK){
+                                Kbar_m = par->grid_K_pd[iKm];
+                            }
+                            else {
+                                Kbar_m = utils::K_bar(0.0,0.0,t_next,par);
+                            }
+                    
+                        
+                            // loop through shocks
+                            double EVw_plus = 0.0;
+                            double EVm_plus = 0.0;
+                            for (int iZw_next=0; iZw_next<par->num_Z; iZw_next++){
+                                //int idx_Zw_weight = index::index2(iZw,iZw_next,par->num_Z,par->num_Z);
+                                for (int iZm_next=0; iZm_next<par->num_Z; iZm_next++){
                                     
+                                    //int idx_Zm_weight = index::index2(iZm,iZm_next,par->num_Z,par->num_Z);
+                                    // next-period values
+                                    int idx_next = index::couple(t_next,iZw_next,iZm_next, iP,0,0,0,0,par);
+                                    double* Vw_next = &sol->Vw_couple[idx_next]; 
+                                    double* Vm_next = &sol->Vm_couple[idx_next]; 
 
-                                    // loop through shocks
-                                    double EVw_plus = 0.0;
-                                    double EVm_plus = 0.0;
-                                    for (int iZw_next=0; iZw_next<par->num_Z; iZw_next++){
-                                        //int idx_Zw_weight = index::index2(iZw,iZw_next,par->num_Z,par->num_Z);
-                                        for (int iZm_next=0; iZm_next<par->num_Z; iZm_next++){
+                                    int jKw = 0;
+                                    for (int iKw_next=0;iKw_next<par->num_shock_K;iKw_next++){
+                                        double Kw_next = Kbar_w*par->grid_shock_K_perm[iKw_next]+par->grid_shock_K_temp[iKw_next];
+                                        jKw = tools::binary_search(jKw,par->num_K,par->grid_K,Kw_next);
+                                        
+                                        int jKm = 0;
+                                        for (int iKm_next=0;iKm_next<par->num_shock_K;iKm_next++){
+                                            double Km_next = Kbar_m*par->grid_shock_K_perm[iKm_next]+par->grid_shock_K_temp[iKm_next];
+                                            jKm = tools::binary_search(jKm,par->num_K,par->grid_K,Km_next);
                                             
-                                            //int idx_Zm_weight = index::index2(iZm,iZm_next,par->num_Z,par->num_Z);
-                                            // next-period values
-                                            int idx_next = index::couple(t_next,iZw_next,iZm_next, iP,0,0,0,0,par);
-                                            double* Vw_next = &sol->Vw_couple[idx_next]; 
-                                            double* Vm_next = &sol->Vm_couple[idx_next]; 
-
-                                            int jKw = 0;
-                                            for (int iKw_next=0;iKw_next<par->num_shock_K;iKw_next++){
-                                                double Kw_next = Kbar_w*par->grid_shock_K_perm[iKw_next]+par->grid_shock_K_temp[iKw_next];
-                                                jKw = tools::binary_search(jKw,par->num_K,par->grid_K,Kw_next);
+                                            int jL = 0;
+                                            for (int iL_next = 0; iL_next < par->num_shock_love; iL_next++) {
+                                                double love_next = love + par->grid_shock_love[iL_next];
+                                                jL = tools::binary_search(jL,par->num_love,par->grid_love,love_next);
                                                 
-                                                int jKm = 0;
-                                                for (int iKm_next=0;iKm_next<par->num_shock_K;iKm_next++){
-                                                    double Km_next = Kbar_m*par->grid_shock_K_perm[iKm_next]+par->grid_shock_K_temp[iKm_next];
-                                                    jKm = tools::binary_search(jKm,par->num_K,par->grid_K,Km_next);
-                                                    
-                                                    int jL = 0;
-                                                    for (int iL_next = 0; iL_next < par->num_shock_love; iL_next++) {
-                                                        double love_next = love + par->grid_shock_love[iL_next];
-                                                        jL = tools::binary_search(jL,par->num_love,par->grid_love,love_next);
-                                                        
-                                                        double Vw_interp, Vm_interp;
-                                                        tools::_interp_4d_2out(&Vw_interp,&Vm_interp, par->grid_love,par->grid_A,par->grid_K,par->grid_K,par->num_love,par->num_A,par->num_K,par->num_K, Vw_next,Vm_next, love_next,A_next,Kw_next,Km_next, jL,jA,jKw,jKm);
-                                                        
-                                                        double weight = par->grid_weight_love[iL_next] * par->grid_weight_K[iKw_next] * par->grid_weight_K[iKm_next] * grid_weight_Zw[iZw_next] * grid_weight_Zm[iZm_next];
-                                                        //double weight = par->grid_weight_love[iL_next] * par->grid_weight_K[iKw_next] * par->grid_weight_K[iKm_next] * par->grid_weight_Z[idx_Zw_weight] * par->grid_weight_Z[idx_Zm_weight];
-                                                        EVw_plus += weight * Vw_interp;
-                                                        EVm_plus += weight * Vm_interp;
-                                                    }
-                                                }
+                                                double Vw_interp, Vm_interp;
+                                                tools::_interp_4d_2out(&Vw_interp,&Vm_interp, par->grid_love,par->grid_A,par->grid_K,par->grid_K,par->num_love,par->num_A,par->num_K,par->num_K, Vw_next,Vm_next, love_next,A_next,Kw_next,Km_next, jL,jA,jKw,jKm);
+                                                
+                                                double weight = par->grid_weight_love[iL_next] * par->grid_weight_K[iKw_next] * par->grid_weight_K[iKm_next] * grid_weight_Zw[iZw_next] * grid_weight_Zm[iZm_next];
+                                                //double weight = par->grid_weight_love[iL_next] * par->grid_weight_K[iKw_next] * par->grid_weight_K[iKm_next] * par->grid_weight_Z[idx_Zw_weight] * par->grid_weight_Z[idx_Zm_weight];
+                                                EVw_plus += weight * Vw_interp;
+                                                EVm_plus += weight * Vm_interp;
                                             }
                                         }
                                     }
-                                // store in solution
-                                int idx = index::precomp(iZw, iZm, iP,iL,iA,iKw,iKm,par);
-                                sol->EVw_pd[idx] = par->beta*EVw_plus;
-                                sol->EVm_pd[idx] = par->beta*EVm_plus;
                                 }
                             }
+                        // store in solution
+                        int idx = index::precomp(iZw, iZm, iP,iL,iA,iKw,iKm,par);
+                        sol->EVw_pd[idx] = par->beta*EVw_plus;
+                        sol->EVm_pd[idx] = par->beta*EVm_plus;
+                        }
+                    }
 
-                        } // Kmbar
-                    } // Kwbar
-                } // Abar
-            } // love
-        } // power
-
+                } // Kmbar
+            } // Kwbar
+        } // love, Zw, Zm
         } // pragma
     
     }
@@ -273,39 +270,31 @@ namespace couple {
 
         // solve for optimal consumption at this level of labor supply
         double minf=0.0;
-        //if (t<(par->T-1)){
-            int const dim = 1;
-            double lb[dim],ub[dim],y[dim];
-            
-            auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
+        int const dim = 1;
+        double lb[dim],ub[dim],y[dim];
+        
+        auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
 
-            // bounds
-            lb[0] = 1.0e-6;
-            //ub[0] = resources(labor_w,labor_m,A,Kw,Km,par)-1.0e-6;
-            ub[0] = A; /*income is end period, so you can only consume saving*/
-            nlopt_set_lower_bounds(opt, lb);
-            nlopt_set_upper_bounds(opt, ub);
+        // bounds
+        lb[0] = 1.0e-6;
+        ub[0] = resources(labor_w,labor_m,A,Kw,Km,par)-1.0e-6;
+        // ub[0] = A; /*income is end period, so you can only consume saving*/
+        nlopt_set_lower_bounds(opt, lb);
+        nlopt_set_upper_bounds(opt, ub);
 
-            nlopt_set_ftol_rel(opt,1.0e-8);
-            nlopt_set_xtol_rel(opt,1.0e-6);
+        nlopt_set_ftol_rel(opt,1.0e-8);
+        nlopt_set_xtol_rel(opt,1.0e-6);
 
-            
-            nlopt_set_min_objective(opt, objfunc_cons, solver_data); 
+        
+        nlopt_set_min_objective(opt, objfunc_cons, solver_data); 
 
-            // optimize
-            y[0] = MIN(ub[0],solver_data->cons); // use last found consumption as starting guess
-            nlopt_optimize(opt, y, &minf); 
-            solver_data->cons = y[0];
+        // optimize
+        y[0] = MIN(ub[0],solver_data->cons); // use last found consumption as starting guess
+        nlopt_optimize(opt, y, &minf); 
+        solver_data->cons = y[0];
 
-            // destroy optimizer
-            nlopt_destroy(opt);
-
-        //} else {
-            // consume all resources in last period
-        //    solver_data->cons = resources(labor_w,labor_m,A,Kw,Km,par);
-        //    minf = - value_of_choice(Vw,Vm,solver_data->cons,labor_w,labor_m,power,love,A,Kw,Km,t,solver_data->EVw_next,solver_data->EVm_next,par);
-
-        //}
+        // destroy optimizer
+        nlopt_destroy(opt);
 
         // return objective function
         return minf + penalty;
@@ -364,7 +353,9 @@ namespace couple {
         x[0] = 0.5;
         x[1] = 0.5;
         int idx_last = -1;
-        if(iKm>0){
+        if(t<(par->T-1)){
+            idx_last = index::couple(t+1,iZw, iZm,iP,iL,iA,iKw,iKm,par);
+        } else if(iKm>0){
             idx_last = index::couple(t,iZw, iZm,iP,iL,iA,iKw,iKm-1,par); 
         } else if(iKw>0) {
             idx_last = index::couple(t,iZw, iZm, iP,iL,iA,iKw-1,iKm,par); 
@@ -405,136 +396,131 @@ namespace couple {
 
             // loop through states (par.T,par.num_power,par.num_love,par.num_A,par.num_K,par.num_K)
             #pragma omp for
-            for (int iL=0; iL<par->num_love; iL++){
-                for (int iP=0; iP<par->num_power; iP++){
-                    
-                    for (int iZw=0; iZw<par->num_Z; iZw++){
-                    
-                        for (int iZm=0; iZm<par->num_Z; iZm++){
+            for (int ij=0; ij<par->num_love*par->num_Z*par->num_Z; ij++){
+                int iL = par->idx_par_love[ij];
+                int iZw = par->idx_par_Zw[ij];
+                int iZm = par->idx_par_Zm[ij];
+                for (int iP=0; iP<par->num_power; iP++){    
 
-                            // Get next period continuation values
-                            double *EVw_next = nullptr;  
-                            double *EVm_next = nullptr;
-                            if (t<(par->T-1)){
-                                int idx_next = index::precomp(iZw,iZm,iP,iL,0,0,0,par); // interpolate next-period expected value (pre-computed) wrt. Anext,Kwbar,Kmbar (love is on grid)
-                                EVw_next = &sol->EVw_pd[idx_next];  
-                                EVm_next = &sol->EVm_pd[idx_next];
+                    // Get next period continuation values
+                    double *EVw_next = nullptr;  
+                    double *EVm_next = nullptr;
+                    if (t<(par->T-1)){
+                        int idx_next = index::precomp(iZw,iZm,iP,iL,0,0,0,par); // interpolate next-period expected value (pre-computed) wrt. Anext,Kwbar,Kmbar (love is on grid)
+                        EVw_next = &sol->EVw_pd[idx_next];  
+                        EVm_next = &sol->EVm_pd[idx_next];
+                    }
+                    
+                    for (int iA=0; iA<par->num_A; iA++){
+                        for (int iKw=0; iKw<par->num_K; iKw++){
+                            for (int iKm=0; iKm<par->num_K; iKm++){
+
+                                solve_remain(t,iZw,iZm,iP,iL,iA,iKw,iKm,EVw_next,EVm_next,sol,par); 
                             }
-                            
-                            for (int iA=0; iA<par->num_A; iA++){
-                                for (int iKw=0; iKw<par->num_K; iKw++){
-                                    for (int iKm=0; iKm<par->num_K; iKm++){
-
-                                        solve_remain(t,iZw,iZm,iP,iL,iA,iKw,iKm,EVw_next,EVm_next,sol,par); 
-                                    }
-                                }
-                            } // human capital, man
-                        } // human capital, woman
-                    } // wealth
-                } // love
-            } // power
+                        } // human capital, man
+                    } // human capital, woman
+                } // power
+            } // love, Zw, Zm
 
             // Solve for values of starting as couple (check participation constraints)
             #pragma omp for
-            for (int iL=0; iL<par->num_love; iL++){
+            for (int ij=0; ij<par->num_love*par->num_Z*par->num_Z; ij++){
+                int iL = par->idx_par_love[ij];
+                int iZw = par->idx_par_Zw[ij];
+                int iZm = par->idx_par_Zm[ij];
                 for (int iA=0; iA<par->num_A; iA++){
-                    for (int iZw=0; iZw<par->num_Z; iZw++){
-                        for (int iZm=0; iZm<par->num_Z; iZm++){
-                            for (int iKw=0; iKw<par->num_K; iKw++){
-                                for (int iKm=0; iKm<par->num_K; iKm++){
-                                    // indices
-                                    int idx_single_w = index::single(t,iZw,iA,iKw,par);
-                                    int idx_single_m = index::single(t,iZm,iA,iKm,par);
-                                    
-                                    idx_couple->t = t;
-                                    idx_couple->iL = iL;
-                                    idx_couple->iA = iA;
-                                    idx_couple ->iZw = iZw;
-                                    idx_couple ->iZm = iZm;
-                                    idx_couple->iKw = iKw;
-                                    idx_couple->iKm = iKm;
-                                    idx_couple->par = par;
+                    for (int iKw=0; iKw<par->num_K; iKw++){
+                        for (int iKm=0; iKm<par->num_K; iKm++){
+                            // indices
+                            int idx_single_w = index::single(t,iZw,iA,iKw,par);
+                            int idx_single_m = index::single(t,iZm,iA,iKm,par);
+                            
+                            idx_couple->t = t;
+                            idx_couple->iL = iL;
+                            idx_couple->iA = iA;
+                            idx_couple ->iZw = iZw;
+                            idx_couple ->iZm = iZm;
+                            idx_couple->iKw = iKw;
+                            idx_couple->iKm = iKm;
+                            idx_couple->par = par;
 
-                                    // Calculate marital surplus across power
-                                    for (int iP=0; iP<par->num_power; iP++){
-                                        int idx_tmp = index::couple(t,iZw,iZm,iP,iL,iA,iKw,iKm,par);
-                                        Sw[iP] = calc_marital_surplus(sol->Vw_remain_couple[idx_tmp],sol->Vw_single[idx_single_w],par);
-                                        Sm[iP] = calc_marital_surplus(sol->Vm_remain_couple[idx_tmp],sol->Vm_single[idx_single_m],par);
-                                    }
-
-                                    // setup relevant lists to pass to the bargaining algorithm
-                                    int i = 0;
-                                    list_start_as_couple[i] = sol->Vw_couple; i++;
-                                    list_start_as_couple[i] = sol->Vm_couple; i++;
-                                    list_start_as_couple[i] = sol->labor_w_couple; i++;
-                                    list_start_as_couple[i] = sol->labor_m_couple; i++;
-                                    list_start_as_couple[i] = sol->cons_w_couple; i++; 
-                                    list_start_as_couple[i] = sol->cons_m_couple; i++; 
-                                    i = 0;
-                                    list_remain_couple[i] = sol->Vw_remain_couple; i++;
-                                    list_remain_couple[i] = sol->Vm_remain_couple; i++;
-                                    list_remain_couple[i] = sol->labor_w_remain_couple; i++;
-                                    list_remain_couple[i] = sol->labor_m_remain_couple; i++;
-                                    list_remain_couple[i] = sol->cons_w_remain_couple; i++; 
-                                    list_remain_couple[i] = sol->cons_m_remain_couple; i++; 
-                                    i = 0;
-                                    list_trans_to_single[i] = sol->Vw_single[idx_single_w]; i++;
-                                    list_trans_to_single[i] = sol->Vm_single[idx_single_m]; i++;
-                                    list_trans_to_single[i] = sol->labor_w_single[idx_single_w]; i++;
-                                    list_trans_to_single[i] = sol->labor_m_single[idx_single_m]; i++;
-                                    list_trans_to_single[i] = sol->cons_w_single[idx_single_w]; i++; 
-                                    list_trans_to_single[i] = sol->cons_m_single[idx_single_m]; i++; 
-
-                                    // Update solutions in list_start_as_couple
-                                    int bargaining = par->bargaining;
-                                    if ((par->bargaining_init_nash)&(t==0)){
-                                        bargaining = 2; // NASH bargaining in first period
-                                    }
-                                    if(bargaining==1){ // limited commitment
-
-                                        bargaining::limited_commitment(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
-                                    
-                                    } else if(bargaining==2){ // no commitment, Nash cooperation
-
-                                        // bargaining::nash(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
-                                        double love = par->grid_love[iL];
-                                        double Aw = par->grid_Aw[iA];
-                                        double Am = par->grid_Am[iA];
-                                        double Kw = par->grid_K[iKw];
-                                        double Km = par->grid_K[iKm];
-
-                                        double power = bargaining::calc_bargaining_weight(t,love,Aw,Am,Kw,Km,iZw,iZm,sol,par);
-                                        
-                                        for (int iP=0; iP<par->num_power; iP++){ // constant power across the grid.
-                                            int idx_out = index::couple(t,iZw,iZm,iP,iL,iA,iKw,iKm,par);
-                                            
-                                            sol->power[idx_out] = power;
-                                            for (i=0; i<num;i++){ // loop through list and fill out
-
-                                                if (power<0.0){  // divorce
-                                                    list_start_as_couple[i][idx_out] = list_trans_to_single[i];
-                                                } else {
-                                                    int iP_interp = tools::binary_search(0, par->num_power, par->grid_power, power);
-                                                    // int iP_interp = MIN(par->num_power-1 , 1 + tools::binary_search(0, par->num_power, par->grid_power, power));
-                                                    int idx_interp = index::couple(t,iZw,iZm,iP_interp,iL,iA,iKw,iKm,par); // now use the point below->could interpolate!
-                                                    list_start_as_couple[i][idx_out] = list_remain_couple[i][idx_interp];
-                                                }
-                                            }
-                                        }
-                                    
-                                    } else { // no bargaining - full commitment
-
-                                        bargaining::full_commitment(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
-
-                                    } // bargaining_model check
-                                }
+                            // Calculate marital surplus across power
+                            for (int iP=0; iP<par->num_power; iP++){
+                                int idx_tmp = index::couple(t,iZw,iZm,iP,iL,iA,iKw,iKm,par);
+                                Sw[iP] = calc_marital_surplus(sol->Vw_remain_couple[idx_tmp],sol->Vw_single[idx_single_w],par);
+                                Sm[iP] = calc_marital_surplus(sol->Vm_remain_couple[idx_tmp],sol->Vm_single[idx_single_m],par);
                             }
 
-                        } // human capital, man
-                    } // human capital, woman
-                } // wealth
-            } // love
+                            // setup relevant lists to pass to the bargaining algorithm
+                            int i = 0;
+                            list_start_as_couple[i] = sol->Vw_couple; i++;
+                            list_start_as_couple[i] = sol->Vm_couple; i++;
+                            list_start_as_couple[i] = sol->labor_w_couple; i++;
+                            list_start_as_couple[i] = sol->labor_m_couple; i++;
+                            list_start_as_couple[i] = sol->cons_w_couple; i++; 
+                            list_start_as_couple[i] = sol->cons_m_couple; i++; 
+                            i = 0;
+                            list_remain_couple[i] = sol->Vw_remain_couple; i++;
+                            list_remain_couple[i] = sol->Vm_remain_couple; i++;
+                            list_remain_couple[i] = sol->labor_w_remain_couple; i++;
+                            list_remain_couple[i] = sol->labor_m_remain_couple; i++;
+                            list_remain_couple[i] = sol->cons_w_remain_couple; i++; 
+                            list_remain_couple[i] = sol->cons_m_remain_couple; i++; 
+                            i = 0;
+                            list_trans_to_single[i] = sol->Vw_single[idx_single_w]; i++;
+                            list_trans_to_single[i] = sol->Vm_single[idx_single_m]; i++;
+                            list_trans_to_single[i] = sol->labor_w_single[idx_single_w]; i++;
+                            list_trans_to_single[i] = sol->labor_m_single[idx_single_m]; i++;
+                            list_trans_to_single[i] = sol->cons_w_single[idx_single_w]; i++; 
+                            list_trans_to_single[i] = sol->cons_m_single[idx_single_m]; i++; 
 
+                            // Update solutions in list_start_as_couple
+                            int bargaining = par->bargaining;
+                            if ((par->bargaining_init_nash)&(t==0)){
+                                bargaining = 2; // NASH bargaining in first period
+                            }
+                            if(bargaining==1){ // limited commitment
+
+                                bargaining::limited_commitment(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
+                            
+                            } else if(bargaining==2){ // no commitment, Nash cooperation
+
+                                // bargaining::nash(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
+                                double love = par->grid_love[iL];
+                                double Aw = par->grid_Aw[iA];
+                                double Am = par->grid_Am[iA];
+                                double Kw = par->grid_K[iKw];
+                                double Km = par->grid_K[iKm];
+
+                                double power = bargaining::calc_bargaining_weight(t,love,Aw,Am,Kw,Km,iZw,iZm,sol,par);
+                                
+                                for (int iP=0; iP<par->num_power; iP++){ // constant power across the grid.
+                                    int idx_out = index::couple(t,iZw,iZm,iP,iL,iA,iKw,iKm,par);
+                                    
+                                    sol->power[idx_out] = power;
+                                    for (i=0; i<num;i++){ // loop through list and fill out
+
+                                        if (power<0.0){  // divorce
+                                            list_start_as_couple[i][idx_out] = list_trans_to_single[i];
+                                        } else {
+                                            // interpolate the found solution
+                                            int left_point = tools::binary_search(0, par->num_power, par->grid_power, power);
+                                            int delta = idx_couple->idx(left_point+1) - idx_couple->idx(left_point); //difference between the indices of two consecutive values of iP
+                                            list_start_as_couple[i][idx_out] = tools::interp_1d_index_delta(par->grid_power, par->num_power, list_remain_couple[i], power, left_point, delta, idx_couple->idx(0), 1, 0);
+                                        }
+                                    }
+                                }
+                            
+                            } else { // no bargaining - full commitment
+
+                                bargaining::full_commitment(sol->power_idx, sol->power, Sw, Sm, idx_couple, list_start_as_couple, list_remain_couple, list_trans_to_single, num, par);
+
+                            } // bargaining_model check
+                        }
+                    }
+
+                } // human capital, man
+            } // love, Zw, Zm
             
             // delete pointers
             delete[] list_start_as_couple;

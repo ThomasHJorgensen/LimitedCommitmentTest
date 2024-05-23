@@ -291,7 +291,6 @@ namespace sim {
 
                         // optimal labor supply and consumption
                         tools::interp_5d_2out(&sim->labor_w[it],&sim->labor_m[it], par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->labor_w_couple[idx_sol],&sol->labor_m_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]);
-                        //tools::interp_5d_2out(&sim->labor_w[it],&sim->labor_m[it], par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->labor_w_remain_couple[idx_sol],&sol->labor_m_remain_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]);
                         sim->labor_w[it] = MAX(sim->labor_w[it],0.0); // work between 0 and 1
                         sim->labor_w[it] = MIN(sim->labor_w[it],1.0); // work between 0 and 1
                         sim->labor_m[it] = MAX(sim->labor_m[it],0.0); // work between 0 and 1
@@ -299,12 +298,10 @@ namespace sim {
 
 
                         double resources = couple::resources(sim->labor_w[it],sim->labor_m[it],A_lag,sim->Kw[it],sim->Km[it],par); 
-                        //double cons = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->cons_w_remain_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
                         double cons = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->cons_w_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
                         cons = MIN(cons,resources); // cannot borrow. This removes small numerical violations
                         sim->cons_w[it] = cons;
                         sim->cons_m[it] = cons;
-                        //sim->value[it] = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->V_remain_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
                         double value_w = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
                         double value_m = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vm_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
                         
@@ -402,10 +399,6 @@ namespace sim {
 
                         sim->power[it] = -1.0;
 
-                        // left as nans by not updating them:
-                        // sim->power[it1] = nan
-                        // sim->love[it] = nan
-                        // sim->A[it] = nan
                     }
 
                 } // t

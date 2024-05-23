@@ -185,147 +185,6 @@ namespace bargaining {
         } //case 1e
     } //end of check_participation_constraints
 
-    // typedef struct {  
-    //     par_struct* par;   
-    //     double* Sw;
-    //     double* Sm;          
-    // } solver_struct_nash;
-
-    // double obj_nash(unsigned n, const double *x, double *grad, void *solver_data_in){
-    //     // unpack
-    //     double power = x[0];
-
-    //     solver_struct_nash *solver_data = (solver_struct_nash *) solver_data_in;
-    //     double* Sw = solver_data->Sw;
-    //     double* Sm = solver_data->Sm;
-    //     par_struct* par = solver_data->par;
-
-    //     // penalty and clip
-    //     double penalty = 0.0;
-    //     if(power<0.0){ 
-    //         penalty += 1000.0*power*power;
-    //         power = 0.0; 
-    //     } else if (power>1.0){ 
-    //         penalty += 1000.0*(power-1.0)*(power-1.0);
-    //         power = 1.0;
-    //     }
-
-    //     // interpolate surplus
-    //     int j = tools::binary_search(0, par->num_power, par->grid_power, power);
-    //     double Sw_interp = tools::interp_1d_index(par->grid_power, par->num_power, Sw, power, j);
-    //     double Sm_interp = tools::interp_1d_index(par->grid_power, par->num_power, Sm, power, j);
-
-    //     if(Sw_interp<0.0){ 
-    //         penalty += 1000.0*Sw_interp*Sw_interp;
-    //         Sw_interp = 0.0; 
-    //     } else if (Sm_interp<0.0){ 
-    //         penalty += 1000.0*Sm_interp*Sm_interp;
-    //         Sm_interp = 0.0;
-    //     }
-
-    //     // Nash objective function
-    //     double obj = sqrt(Sw_interp) * sqrt(Sm_interp);
-
-    //     // return negative for minimization
-    //     return - obj + penalty;
-
-    // }
-
-    // void nash(int* power_idx, double* power, double* Sw, double* Sm, index::index_couple_struct* idx_couple, double** list_start_as_couple, double** list_remain_couple, double* list_trans_to_single, int num, par_struct* par){
-    //     // find (discrete) max TODO: think about continuous max (interpolation)
-    //     double obj_max = -1.0e10;
-    //     int iP_max = -1;
-    //     for (int iP=0; iP<par->num_power; iP++){
-
-    //         if((Sw[iP]>0.0) & (Sm[iP]>0.0)){
-                
-    //             double obj_now = sqrt(Sw[iP]) * sqrt(Sm[iP]);
-                
-    //             if(obj_now>obj_max){
-    //                 obj_max = obj_now;
-    //                 iP_max = iP;
-    //             }
-    //         }
-    //     }
-
-    //     // update solution
-    //     if(iP_max>-1){
-    //         bool do_cont = true;
-
-    //         if(do_cont){
-    //             // continuous optimization
-    //             double minf=0.0;
-    //             int const dim = 1;
-    //             double lb[dim],ub[dim],y[dim];
-                
-    //             auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
-
-    //             // bounds
-    //             lb[0] = 0.0;
-    //             ub[0] = 1.0;
-    //             nlopt_set_lower_bounds(opt, lb);
-    //             nlopt_set_upper_bounds(opt, ub);
-
-    //             nlopt_set_ftol_rel(opt,1.0e-5);
-    //             nlopt_set_xtol_rel(opt,1.0e-5);
-
-    //             solver_struct_nash* solver_data = new solver_struct_nash;
-    //             solver_data->par = par;
-    //             solver_data->Sw = Sw;
-    //             solver_data->Sm = Sm;
-    //             nlopt_set_min_objective(opt, obj_nash, solver_data); 
-
-    //             // optimize
-    //             y[0] = par->grid_power[iP_max];
-    //             nlopt_optimize(opt, y, &minf); 
-    //             double power_est = y[0];
-
-    //             // destroy optimizer
-    //             nlopt_destroy(opt);
-
-    //             // interpolate solutions onto grids
-    //             int left_point = tools::binary_search(0, par->num_power, par->grid_power, power_est);
-    //             int delta = idx_couple->idx(1) - idx_couple->idx(0);
-    //             for (int iP=0; iP<par->num_power; iP++){
-    //                 int idx = idx_couple->idx(iP);
-    //                 for (int i=0;i<num;i++){
-    //                     list_start_as_couple[i][idx] = tools::interp_1d_index_delta(par->grid_power, par->num_power, list_remain_couple[i], power_est, left_point, delta, idx_couple->idx(0)); 
-    //                 }
-    //                 power[idx] = power_est;
-    //                 power_idx[idx] = iP_max; // close to the optimal
-    //             }
-
-    //         } else {
-    //             // discrete optimization
-    //             int idx_max = idx_couple->idx(iP_max);
-    //             for (int iP=0; iP<par->num_power; iP++){
-    //                 int idx = idx_couple->idx(iP);
-    //                 for (int i=0;i<num;i++){
-    //                     list_start_as_couple[i][idx] = list_remain_couple[i][idx_max];
-    //                 }
-
-    //                 power_idx[idx] = iP_max;
-    //                 power[idx] = par->grid_power[iP_max];
-    //             }
-    //         }
-
-    //     } else {
-
-    //         // divorce
-    //         for (int iP=0; iP<par->num_power; iP++){
-    //             int idx = idx_couple->idx(iP);
-    //             for (int i=0;i<num;i++){
-    //                 list_start_as_couple[i][idx] = list_trans_to_single[i];
-    //             }
-
-    //             power_idx[idx] = -1;
-    //             power[idx] = -1.0;
-
-    //         }
-    //     }
-
-    // } // NASH
-
     void full_commitment(int* power_idx, double* power, double* Sw, double* Sm, index::index_couple_struct* idx_couple, double** list_start_as_couple, double** list_remain_couple, double* list_trans_to_single, int num, par_struct* par){
         
         for (int iP=0; iP<par->num_power; iP++){
@@ -378,7 +237,7 @@ namespace bargaining {
         double* V_couple_to_couple = sol->Vw_remain_couple;
         double* grid_A_single = par->grid_Aw;
         if (gender == man){
-            V_couple_to_single = sol->Vm_single;
+            V_couple_to_single = sol->Vm_trans_single;
             V_couple_to_couple = sol->Vm_remain_couple;
             grid_A_single = par->grid_Am;
         }
@@ -386,12 +245,13 @@ namespace bargaining {
         // Get indices (could be faster if indexes passed in solution)
         int iZw = state_couple->iZw;
         int iZm = state_couple->iZm;
-        int iP = tools::binary_search(0, par->num_power, par->grid_power, power);
+
         int iL = tools::binary_search(0, par->num_love, par->grid_love, love);
         int iKw = tools::binary_search(0, par->num_K, par->grid_K, Kw);
         int iKm = tools::binary_search(0, par->num_K, par->grid_K, Km);
         int iA_couple = tools::binary_search(0, par->num_A, par->grid_A, A_couple);
         int iA_single = tools::binary_search(0, par->num_A, grid_A_single, A_single);
+        int iP = tools::binary_search(0, par->num_power, par->grid_power, power);
 
         // gender specific indices
         int iZ_single = iZw;
@@ -435,7 +295,19 @@ namespace bargaining {
         double Sw_x = surplus_func(x[0],solver_data->state_couple, solver_data->state_single_w, woman, par, sol);
         double Sm_x = surplus_func(x[0],solver_data->state_couple, solver_data->state_single_m, man, par, sol);
 
-        return -(Sw_x*Sm_x); 
+        // make sure surpluses are positive
+        double penalty = 0.0;
+        if(Sw_x<0.0){ 
+            penalty += 1000.0*Sw_x;
+            Sw_x = 0.0; 
+        } 
+        if (Sm_x<0.0){ 
+            penalty += 1000.0*Sm_x;
+            Sm_x = 0.0;
+        }
+
+        return -(Sw_x*Sm_x) - penalty; 
+
     }
 
     
@@ -497,14 +369,10 @@ namespace bargaining {
         // single woman
         state_single_w->t = t;
         state_single_w->A = Aw;
-        // state_single_w->iA = tools::binary_search(0, par->num_A, par->grid_Aw, Aw);
 
         // single man
         state_single_m->t = t;
         state_single_m->A = Am;
-        // state_single_m->iA = tools::binary_search(0, par->num_A, par->grid_Am, Am);
-        // Note: We don't know whether we are on the woman or man asset grid, so we need to search both.
-        // We could pass gender to calc_initial_bargaining_weight to infer which grid we are on, and avoid binary search for that gender
 
         //solver input
         nash_solver_struct* nash_struct = new nash_solver_struct;
