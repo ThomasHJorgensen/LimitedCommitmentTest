@@ -185,147 +185,6 @@ namespace bargaining {
         } //case 1e
     } //end of check_participation_constraints
 
-    typedef struct {  
-        par_struct* par;   
-        double* Sw;
-        double* Sm;          
-    } solver_struct_nash;
-
-    double obj_nash(unsigned n, const double *x, double *grad, void *solver_data_in){
-        // unpack
-        double power = x[0];
-
-        solver_struct_nash *solver_data = (solver_struct_nash *) solver_data_in;
-        double* Sw = solver_data->Sw;
-        double* Sm = solver_data->Sm;
-        par_struct* par = solver_data->par;
-
-        // penalty and clip
-        double penalty = 0.0;
-        if(power<0.0){ 
-            penalty += 1000.0*power*power;
-            power = 0.0; 
-        } else if (power>1.0){ 
-            penalty += 1000.0*(power-1.0)*(power-1.0);
-            power = 1.0;
-        }
-
-        // interpolate surplus
-        int j = tools::binary_search(0, par->num_power, par->grid_power, power);
-        double Sw_interp = tools::interp_1d_index(par->grid_power, par->num_power, Sw, power, j);
-        double Sm_interp = tools::interp_1d_index(par->grid_power, par->num_power, Sm, power, j);
-
-        if(Sw_interp<0.0){ 
-            penalty += 1000.0*Sw_interp*Sw_interp;
-            Sw_interp = 0.0; 
-        } else if (Sm_interp<0.0){ 
-            penalty += 1000.0*Sm_interp*Sm_interp;
-            Sm_interp = 0.0;
-        }
-
-        // Nash objective function
-        double obj = sqrt(Sw_interp) * sqrt(Sm_interp);
-
-        // return negative for minimization
-        return - obj + penalty;
-
-    }
-
-    void nash(int* power_idx, double* power, double* Sw, double* Sm, index::index_couple_struct* idx_couple, double** list_start_as_couple, double** list_remain_couple, double* list_trans_to_single, int num, par_struct* par){
-        // find (discrete) max TODO: think about continuous max (interpolation)
-        double obj_max = -1.0e10;
-        int iP_max = -1;
-        for (int iP=0; iP<par->num_power; iP++){
-
-            if((Sw[iP]>0.0) & (Sm[iP]>0.0)){
-                
-                double obj_now = sqrt(Sw[iP]) * sqrt(Sm[iP]);
-                
-                if(obj_now>obj_max){
-                    obj_max = obj_now;
-                    iP_max = iP;
-                }
-            }
-        }
-
-        // update solution
-        if(iP_max>-1){
-            bool do_cont = true;
-
-            if(do_cont){
-                // continuous optimization
-                double minf=0.0;
-                int const dim = 1;
-                double lb[dim],ub[dim],y[dim];
-                
-                auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim); // NLOPT_LD_MMA NLOPT_LD_LBFGS NLOPT_GN_ORIG_DIRECT
-
-                // bounds
-                lb[0] = 0.0;
-                ub[0] = 1.0;
-                nlopt_set_lower_bounds(opt, lb);
-                nlopt_set_upper_bounds(opt, ub);
-
-                nlopt_set_ftol_rel(opt,1.0e-5);
-                nlopt_set_xtol_rel(opt,1.0e-5);
-
-                solver_struct_nash* solver_data = new solver_struct_nash;
-                solver_data->par = par;
-                solver_data->Sw = Sw;
-                solver_data->Sm = Sm;
-                nlopt_set_min_objective(opt, obj_nash, solver_data); 
-
-                // optimize
-                y[0] = par->grid_power[iP_max];
-                nlopt_optimize(opt, y, &minf); 
-                double power_est = y[0];
-
-                // destroy optimizer
-                nlopt_destroy(opt);
-
-                // interpolate solutions onto grids
-                int left_point = tools::binary_search(0, par->num_power, par->grid_power, power_est);
-                int delta = idx_couple->idx(1) - idx_couple->idx(0);
-                for (int iP=0; iP<par->num_power; iP++){
-                    int idx = idx_couple->idx(iP);
-                    for (int i=0;i<num;i++){
-                        list_start_as_couple[i][idx] = tools::interp_1d_index_delta(par->grid_power, par->num_power, list_remain_couple[i], power_est, left_point, delta, idx_couple->idx(0)); 
-                    }
-                    power[idx] = power_est;
-                    power_idx[idx] = iP_max; // close to the optimal
-                }
-
-            } else {
-                // discrete optimization
-                int idx_max = idx_couple->idx(iP_max);
-                for (int iP=0; iP<par->num_power; iP++){
-                    int idx = idx_couple->idx(iP);
-                    for (int i=0;i<num;i++){
-                        list_start_as_couple[i][idx] = list_remain_couple[i][idx_max];
-                    }
-
-                    power_idx[idx] = iP_max;
-                    power[idx] = par->grid_power[iP_max];
-                }
-            }
-
-        } else {
-
-            // divorce
-            for (int iP=0; iP<par->num_power; iP++){
-                int idx = idx_couple->idx(iP);
-                for (int i=0;i<num;i++){
-                    list_start_as_couple[i][idx] = list_trans_to_single[i];
-                }
-
-                power_idx[idx] = -1;
-                power[idx] = -1.0;
-
-            }
-        }
-
-    } // NASH
-
     void full_commitment(int* power_idx, double* power, double* Sw, double* Sm, index::index_couple_struct* idx_couple, double** list_start_as_couple, double** list_remain_couple, double* list_trans_to_single, int num, par_struct* par){
         
         for (int iP=0; iP<par->num_power; iP++){
@@ -352,5 +211,188 @@ namespace bargaining {
         }
 
     } // FULL COMMITMENT
+
+    // NASH BARGAINING
+    typedef struct {        
+        par_struct *par;   
+        sol_struct *sol;                                    
+        double (*surplus_func)(double,index::state_couple_struct*,index::state_single_struct*,int,par_struct*,sol_struct*); //surplus func as function of power and state
+        index::state_couple_struct *state_couple;                                       // state - tbc 
+        index::state_single_struct *state_single_w;                                       // state - tbc   
+        index::state_single_struct *state_single_m;                                       // state - tbc                             
+    } nash_solver_struct;
+
+
+    double surplus_func(double power, index::state_couple_struct* state_couple, index::state_single_struct* state_single, int gender, par_struct* par, sol_struct* sol){
+        // unpack
+        int t = state_couple->t;
+        double Kw = state_couple->Kw;
+        double Km = state_couple->Km;
+        double love = state_couple->love;
+        double A_couple = state_couple->A; 
+        double A_single = state_single->A;
+
+        // gender specific arrays
+        double* V_couple_to_single = sol->Vw_trans_single;
+        double* V_couple_to_couple = sol->Vw_remain_couple;
+        double* grid_A_single = par->grid_Aw;
+        if (gender == man){
+            V_couple_to_single = sol->Vm_trans_single;
+            V_couple_to_couple = sol->Vm_remain_couple;
+            grid_A_single = par->grid_Am;
+        }
+        
+        // Get indices (could be faster if indexes passed in solution)
+        int iZw = state_couple->iZw;
+        int iZm = state_couple->iZm;
+
+        int iL = tools::binary_search(0, par->num_love, par->grid_love, love);
+        int iKw = tools::binary_search(0, par->num_K, par->grid_K, Kw);
+        int iKm = tools::binary_search(0, par->num_K, par->grid_K, Km);
+        int iA_couple = tools::binary_search(0, par->num_A, par->grid_A, A_couple);
+        int iA_single = tools::binary_search(0, par->num_A, grid_A_single, A_single);
+        int iP = tools::binary_search(0, par->num_power, par->grid_power, power);
+
+        // gender specific indices
+        int iZ_single = iZw;
+        int iK_single = iKw;
+        double K_single = Kw;
+        if (gender == man){
+            iZ_single = iZm;
+            iK_single = iKm;
+            K_single = Km;
+        }
+
+        //interpolate V_couple_to_single
+        int idx_single = index::single(t,iZ_single,0,0,par);
+        double V_single = tools::_interp_2d(grid_A_single,par->grid_K, 
+                                            par->num_A, par->num_K,
+                                            &V_couple_to_single[idx_single], 
+                                            A_single,K_single, 
+                                            iA_single,iK_single); 
+
+        // interpolate couple V_couple_to_couple  
+        int idx_couple = index::couple(t,iZw,iZm,0,0,0,0,0,par); //couple(t,iZw,iZm,iP,iL,iA,iKw,iKm,par) index::couple(t,0,0,0,par);
+        double V_couple = tools::_interp_5d(par->grid_power, par->grid_love, par->grid_A,par->grid_K, par->grid_K, 
+                                       par->num_power, par->num_love, par->num_A, par->num_K, par->num_K,
+                                       &V_couple_to_couple[idx_couple], power, love, A_couple, Kw, Km,
+                                       iP, iL, iA_couple,iKw,iKm);
+
+        // surplus
+        return V_couple - V_single;
+    }
+
+ 
+    // compute negative nash surplus for given power + nash_struct
+    double objfunc_nash_bargain(unsigned n, const double *x, double *grad, void* solver_data_in){
+        // unpack
+        nash_solver_struct* solver_data = (nash_solver_struct*) solver_data_in; 
+        par_struct* par = solver_data->par;
+        sol_struct* sol = solver_data->sol;
+        double (*surplus_func)(double,index::state_couple_struct*, index::state_single_struct*,int,par_struct*,sol_struct*) = solver_data->surplus_func; //TODO: take continuous states as input as generically as possible
+
+        // calculate individual surpluses
+        double Sw_x = surplus_func(x[0],solver_data->state_couple, solver_data->state_single_w, woman, par, sol);
+        double Sm_x = surplus_func(x[0],solver_data->state_couple, solver_data->state_single_m, man, par, sol);
+
+        // make sure surpluses are positive
+        double penalty = 0.0;
+        if(Sw_x<0.0){ 
+            penalty += 1000.0*Sw_x;
+            Sw_x = 0.0; 
+        } 
+        if (Sm_x<0.0){ 
+            penalty += 1000.0*Sm_x;
+            Sm_x = 0.0;
+        }
+
+        return -(Sw_x*Sm_x) - penalty; 
+
+    }
+
+    
+    double nash_bargain(nash_solver_struct* nash_struct){
+        // for a given couple idx, find the bargaining weight
+
+        // unpack
+        par_struct* par = nash_struct->par;
+        sol_struct* sol = nash_struct->sol;
+
+        // set up solver
+        int const dim = 1;
+        auto opt = nlopt_create(NLOPT_LN_BOBYQA, dim);
+        nlopt_set_min_objective(opt, objfunc_nash_bargain, nash_struct);
+
+        // set bounds
+        double lb[dim], ub[dim];
+        lb[0] = par->grid_power[0];
+        ub[0] = par->grid_power[par->num_power-1];
+        nlopt_set_lower_bounds(opt, lb);
+        nlopt_set_upper_bounds(opt, ub);
+
+        //optimize
+        double minf = 0.0;
+        double mu[dim];
+        mu[0] = 0.5;
+        nlopt_optimize(opt, mu, &minf);
+        nlopt_destroy(opt);
+
+        // check surplus is positive
+        double (*surplus_func)(double,index::state_couple_struct*, index::state_single_struct*,int,par_struct*,sol_struct*) = nash_struct->surplus_func; //TODO: take continuous states as input as generically as possible
+        index::state_couple_struct* state_couple = nash_struct->state_couple;
+        index::state_single_struct* state_single_w = nash_struct->state_single_w;
+        index::state_single_struct* state_single_m = nash_struct->state_single_m;
+        double Sw = surplus_func(mu[0], state_couple, state_single_w, woman, par, sol);
+        double Sm = surplus_func(mu[0], state_couple, state_single_m, man, par, sol);
+        if ((Sw<0.0) | (Sm<0.0)){
+            mu[0] = -1.0;
+        }
+
+        return mu[0];
+    }
+
+    double calc_bargaining_weight(int t, double love, double Aw,double Am, double Kw, double Km, int iZw, int iZm, sol_struct* sol, par_struct* par){
+        // state structs
+        index::state_couple_struct* state_couple = new index::state_couple_struct;
+        index::state_single_struct* state_single_w = new index::state_single_struct;
+        index::state_single_struct* state_single_m = new index::state_single_struct;
+
+        // couple
+        state_couple->t = t;
+        state_couple->love = love;
+        state_couple->A = Aw+Am;
+        state_couple->Kw = Kw;
+        state_couple->Km = Km;
+        state_couple->iZw = iZw;
+        state_couple->iZm = iZm;
+
+        // single woman
+        state_single_w->t = t;
+        state_single_w->A = Aw;
+
+        // single man
+        state_single_m->t = t;
+        state_single_m->A = Am;
+
+        //solver input
+        nash_solver_struct* nash_struct = new nash_solver_struct;
+        nash_struct->surplus_func = surplus_func;
+        nash_struct->state_couple = state_couple;
+        nash_struct->state_single_w = state_single_w;
+        nash_struct->state_single_m = state_single_m;
+        nash_struct->sol = sol;
+        nash_struct->par = par;
+
+        // solve
+        double power =  nash_bargain(nash_struct);
+
+        delete state_couple;
+        delete state_single_w;
+        delete state_single_m;
+        delete nash_struct;
+
+        return power;
+    }
+
 
 } // namespace bargaining

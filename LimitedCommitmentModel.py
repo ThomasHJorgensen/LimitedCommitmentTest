@@ -226,15 +226,18 @@ class LimitedCommitmentModelClass(EconModelClass):
         sim.draw_Zm = np.random.uniform(size=shape_sim) 
 
         # initial distribution
-        sim.init_A = par.grid_A[0] + np.zeros(par.simN)
-        sim.init_Aw = par.grid_Aw[0] + np.zeros(par.simN)
-        sim.init_Am = par.grid_Am[0] +  np.zeros(par.simN)
+        iA_init = 100
+        sim.init_A = par.grid_A[iA_init] + np.zeros(par.simN)
+        sim.init_Aw = par.grid_Aw[iA_init] + np.zeros(par.simN)
+        sim.init_Am = par.grid_Am[iA_init] +  np.zeros(par.simN)
         sim.init_couple = np.ones(par.simN,dtype=np.bool_)
         sim.init_power_idx = par.num_power//2 * np.ones(par.simN,dtype=np.int_)
         sim.init_love = np.zeros(par.simN)
         
-        sim.init_Kw = np.random.uniform(low=0.0, high =0.2,size=shape_sim)
-        sim.init_Km = np.random.uniform(low=0.0, high =0.2,size=shape_sim)
+        # sim.init_Kw = np.random.uniform(low=0.0, high =0.2,size=shape_sim)
+        # sim.init_Km = np.random.uniform(low=0.0, high =0.2,size=shape_sim)
+        sim.init_Kw = np.random.uniform(low=0.0, high =0.2,size=par.simN)
+        sim.init_Km = np.random.uniform(low=0.0, high =0.2,size=par.simN)
         #sim.init_Kw = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
         #sim.init_Km = np.exp(-0.5*par.sigma_K_init**2 + par.sigma_K_init*np.random.normal(size=par.simN))
         sim.init_Zw = np.zeros(par.simN)
@@ -311,6 +314,19 @@ class LimitedCommitmentModelClass(EconModelClass):
         else: 
             par.num_K_pd = 1
             par.grid_K_pd = np.array([1.0])
+            
+        # grids for parallization
+        par.idx_par_love = np.zeros(par.num_love*par.num_Z*par.num_Z,dtype=np.int_)
+        par.idx_par_Zw = par.idx_par_love.copy()
+        par.idx_par_Zm = par.idx_par_love.copy()
+        i = 0
+        for iL in range (par.num_love):
+            for iZw in range(par.num_Z):
+                for iZm in range(par.num_Z):
+                    par.idx_par_love[i] = iL
+                    par.idx_par_Zw[i] = iZw
+                    par.idx_par_Zm[i] = iZm
+                    i += 1
 
 
     def solve(self):

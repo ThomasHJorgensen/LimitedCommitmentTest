@@ -32,4 +32,8 @@ EXPORT void simulate(sim_struct *sim, sol_struct *sol, par_struct *par){
 
 }
 
+EXPORT double calc_bargaining_weight(int t, double love, double Aw,double Am, double Kw, double Km, int iZw, int iZm, sol_struct* sol, par_struct* par){
+    return bargaining::calc_bargaining_weight(t,love,Aw,Am,Kw,Km,iZw,iZm,sol,par);
+}
+
 
