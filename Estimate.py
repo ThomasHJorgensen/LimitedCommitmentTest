@@ -169,10 +169,14 @@ def create_variable(data, par, print_aux_reg = False):
     for val in list_log:
         # take the log
         log_name = 'log_' + val
+        name     = val
+
         data[log_name] = np.log(data[val])
         data_l[log_name] = np.log(data_l[val])
         data_l2[log_name] = np.log(data_l2[val])
         data_l3[log_name] = np.log(data_l3[val])
+
+        data_l[name] = data_l[val]
 
 
     data =  data.merge(data_l, how='left', left_on = ['t','idx'], right_on = ['t','idx'], suffixes=('', '_l'))
@@ -186,14 +190,24 @@ def create_variable(data, par, print_aux_reg = False):
         delta_log       = 'delta_log_' + val
         delta_log_l     = 'delta_log_' + val + '_l'
         delta_log_l2    = 'delta_log_' + val + '_l2'
+
+        
+        delta       = 'delta_' + val
+        
         
         log_name       = 'log_' + val
         log_name_l     = 'log_' + val + '_l'
         log_name_l2     = 'log_' + val + '_l2'
         log_name_l3     = 'log_' + val + '_l3'
+        name            = val
+        name_l         = val + '_l'
+        
         data[delta_log] = data[log_name]-data[log_name_l]
         data[delta_log_l] = data[log_name_l]-data[log_name_l2]
         data[delta_log_l2] = data[log_name_l2]-data[log_name_l3]
+
+        
+        data[delta] = data[name]-data[name_l]
 
 
     #DROP NAN
@@ -230,6 +244,9 @@ def create_variable(data, par, print_aux_reg = False):
     data['control_part_inc_w'] = data['inc_share_m_l']*data['delta_log_earnings_m']
     data['control_part_inc_m'] = data['inc_share_w_l']*data['delta_log_earnings_w']
     data['control_cons'] = data['cons_l']*data['delta_log_cons']
+    
+    data['delta_lag_log_fam_inc'] = data['delta_log_fam_inc']*data['log_fam_inc_l']
+    data['delta_lag_log_wealth'] = data['delta_log_wealth']*data['log_wealth_l']
 
     #keep variable I need
     #data = data[['t','idx','init_barg', 'y_w', 'y_m', 'inc_share_w', 'inc_share_w_l', 'delta_log_wage_w','delta_log_wage_m','delta_log_wage_w_l','delta_log_wage_m_l','delta_log_wage_w_l2','delta_log_wage_m_l2', 'omega_res_w', 'omega_res_m','omega_res_w_l', 'omega_res_m_l','omega_res_w_l2', 'omega_res_m_l2', 'delta_omega_m','delta_omega_w','delta_omega_w_l', 'delta_omega_m_l','delta_omega_w_l2', 'delta_omega_m_l2', 'control_part_inc_w', 'control_part_inc_m', 'control_cons', 'delta_log_wealth','delta_log_wealth_l', 'delta_log_wealth_l2' ,'delta_log_fam_inc', 'log_fam_inc', 'log_wealth', 'log_fam_inc_l', 'log_fam_inc_l2', 'log_wealth_l','log_wealth_l2', 'wealth_F', 'log_earnings_w', 'log_earnings_m', 'log_earnings_w_l', 'log_earnings_m_l', 'delta_log_BMI_w', 'delta_log_BMI_m', 'delta_log_BMI_w_l', 'delta_log_BMI_m_l', 'delta_log_BMI_w_l2', 'delta_log_BMI_m_l2', 'delta_log_Love', 'delta_log_Love_l', 'delta_log_Love_l2']]
@@ -261,7 +278,7 @@ def aux_est(data, par, print_reg = False):
     return data
 
 
-def main_est(data, gender = "w", do_estimate_wage = "est_omega", print_reg = False, shadow_value_simple = 1, do_control_love = False, part_earning_simple = 1, control_cons = 1 ):
+def main_est(data, gender = "w", do_estimate_wage = "est_omega", print_reg = False, shadow_value_simple = 1, do_control_love = False, part_earning_simple = 1, control_cons = 1 , wealth_love = 1, BMI_dummy = False):
     #Find the gender and the gender of the spouse
     if gender == "w":
         spouse = "m"
@@ -294,22 +311,35 @@ def main_est(data, gender = "w", do_estimate_wage = "est_omega", print_reg = Fal
         data['wage_shock_j_l2']=data[f'delta_log_wage_{spouse}_l2']
     else: 
         raise Exception("do_estimate_wage must be est_omega, true_omega, wage")
+    
+    data_regress = data[['t','delta_lag_log_fam_inc','delta_lag_log_wealth',f'inc_share_{spouse}_l',f'delta_log_earnings_{spouse}','cons_l','delta_log_cons','init_barg','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'log_wealth', 'wealth_F',  f'y_{gender}', 'idx', 'wage_shock','wage_shock_l','wage_shock_l2','wage_shock_j','wage_shock_j_l','wage_shock_j_l2','delta_log_BMI_w','delta_log_BMI_w_l','delta_log_BMI_w_l2','delta_log_BMI_m','delta_log_BMI_m_l','delta_log_BMI_m_l2',f'control_part_inc_{gender}','control_cons','delta_log_wealth','delta_log_wealth_l','delta_log_wealth_l2','delta_log_Love','delta_log_Love_l','delta_log_Love_l2','delta_log_fam_inc', 'log_fam_inc' , 'log_fam_inc_l', 'log_fam_inc_l2', 'log_wealth_l', 'log_wealth_l2']]
 
-  
-    data['BMI'] = data[f'delta_log_BMI_{gender}']
-    data['BMI_l'] = data[f'delta_log_BMI_{gender}_l']
-    data['BMI_l2'] = data[f'delta_log_BMI_{gender}_l2']
-    data['BMI_j'] = data[f'delta_log_BMI_{spouse}']
-    data['BMI_j_l'] = data[f'delta_log_BMI_{spouse}_l']
-    data['BMI_j_l2'] = data[f'delta_log_BMI_{spouse}_l2']
+    if BMI_dummy:
+        data_regress['BMI_neg'] = (data[f'delta_log_BMI_{gender}']<0).astype(int)
+        data_regress['BMI_l_neg'] = (data[f'delta_log_BMI_{gender}_l']<0).astype(int)
+        data_regress['BMI_l2_neg'] = (data[f'delta_log_BMI_{gender}_l2']<0).astype(int)
+        data_regress['BMI_j_neg'] = (data[f'delta_log_BMI_{spouse}']<0).astype(int)
+        data_regress['BMI_j_l_neg'] = (data[f'delta_log_BMI_{spouse}_l']<0).astype(int)
+        data_regress['BMI_j_l2_neg'] = (data[f'delta_log_BMI_{spouse}_l2']<0).astype(int)
+        
+        data_regress['BMI_pos'] = (data[f'delta_log_BMI_{gender}']>0).astype(int)
+        data_regress['BMI_l_pos'] = (data[f'delta_log_BMI_{gender}_l']>0).astype(int)
+        data_regress['BMI_l2_pos'] = (data[f'delta_log_BMI_{gender}_l2']>0).astype(int)
+        data_regress['BMI_j_pos'] = (data[f'delta_log_BMI_{spouse}']>0).astype(int)
+        data_regress['BMI_j_l_pos'] = (data[f'delta_log_BMI_{spouse}_l']>0).astype(int)
+        data_regress['BMI_j_l2_pos'] = (data[f'delta_log_BMI_{spouse}_l2']>0).astype(int)
+    else: 
+        data_regress['BMI'] = data[f'delta_log_BMI_{gender}']
+        data_regress['BMI_l'] = data[f'delta_log_BMI_{gender}_l']
+        data_regress['BMI_l2'] = data[f'delta_log_BMI_{gender}_l2']
+        data_regress['BMI_j'] = data[f'delta_log_BMI_{spouse}']
+        data_regress['BMI_j_l'] = data[f'delta_log_BMI_{spouse}_l']
+        data_regress['BMI_j_l2'] = data[f'delta_log_BMI_{spouse}_l2']
 
     
     
-    
-    data_regress = data[['t',f'inc_share_{spouse}_l',f'delta_log_earnings_{spouse}','init_barg','log_earnings_w', 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_F',  f'y_{gender}', 'idx', 'wage_shock','wage_shock_l','wage_shock_l2','wage_shock_j','wage_shock_j_l','wage_shock_j_l2','BMI','BMI_l','BMI_l2','BMI_j','BMI_j_l','BMI_j_l2',f'control_part_inc_{gender}','control_cons','delta_log_wealth','delta_log_wealth_l','delta_log_wealth_l2','delta_log_Love','delta_log_Love_l','delta_log_Love_l2','delta_log_fam_inc', 'log_fam_inc' , 'log_fam_inc_l', 'log_fam_inc_l2', 'log_wealth_l', 'log_wealth_l2']]
-
     #DROP NAN
-    data_regress = data_regress.dropna() # det ser ud som om den ikke fjerner nogen
+    data_regress = data_regress.dropna() 
 
     #PREPARE T
     X_t=pd.get_dummies(data_regress[['t', 'init_barg']], columns = ['t','init_barg'], prefix = ['D_t','D_init_barg'], dtype = float) 
@@ -336,14 +366,19 @@ def main_est(data, gender = "w", do_estimate_wage = "est_omega", print_reg = Fal
 
     elif control_cons == 3:
         cons = data_regress[['t']]
-        cat = ['control_cons',]
-        
+        cat = ['control_cons','cons_l','delta_log_cons']
+    
         for i in cat:
-            cons[f'{i}'] = data_regress[i]
-            cons[f'{i}2'] = data_regress[i]*data_regress[i]
-            cons[f'{i}3'] = data_regress[i]*data_regress[i]*data_regress[i]
-        
+            cons[i] = pd.qcut(data_regress[i], 50, labels = False, duplicates='raise') 
+
+        cons = pd.get_dummies(cons, columns=['control_cons','cons_l','delta_log_cons'], drop_first = True, dtype = float)
+
+
+        #Drop if less than two
+        cons = cons.loc[:,(cons.sum()>2 )]
         cons = cons.drop(columns = ['t'])
+
+        
     else:
 
         raise Exception("control_cons must be 1, 2 or 3")
@@ -371,40 +406,20 @@ def main_est(data, gender = "w", do_estimate_wage = "est_omega", print_reg = Fal
 
     elif part_earning_simple == 3: 
         inc_share = data_regress[['t']]
-
-        cat = [f'control_part_inc_{gender}',]
-
-        
-        for i in cat:
-            inc_share[f'{i}'] = data_regress[i]
-            inc_share[f'{i}2'] = data_regress[i]*data_regress[i]
-            inc_share[f'{i}3'] = data_regress[i]*data_regress[i]*data_regress[i]
-        
-        inc_share = inc_share.drop(columns = ['t'])
-
-    elif  part_earning_simple == 4: 
-        #HVER FOR SIG interaceret
-        #HVER FOR SIG 
-        inc_share = data_regress[['t']]
-        cat = [f'inc_share_{spouse}_l',f'delta_log_earnings_{spouse}']
+        cat = [f'control_part_inc_{gender}', f'inc_share_{spouse}_l', f'delta_log_earnings_{spouse}']
     
         for i in cat:
-            inc_share[i] = pd.qcut(data_regress[i], 15, labels = False, duplicates='raise') 
+            inc_share[i] = pd.qcut(data_regress[i], 50, labels = False, duplicates='raise') 
 
-        
-        
-        inc_share['interact'] = inc_share[f'inc_share_{spouse}_l'].astype('str') + '_' + inc_share[f'delta_log_earnings_{spouse}'].astype('str')
-
-        inc_share = pd.get_dummies(inc_share, columns=['interact' ], drop_first = True, dtype = float)
-
+        inc_share = pd.get_dummies(inc_share, columns=[f'control_part_inc_{gender}',f'inc_share_{spouse}_l',f'delta_log_earnings_{spouse}' ], drop_first = True, dtype = float)
 
 
         #Drop if less than two
         inc_share = inc_share.loc[:,(inc_share.sum()>2 )]
-        inc_share = inc_share.drop(columns = ['t', f'inc_share_{spouse}_l',f'delta_log_earnings_{spouse}'])
+        inc_share = inc_share.drop(columns = ['t'])
 
     else:
-        raise Exception("part_earning_simple must be 1, 2,  3 or 4")
+        raise Exception("part_earning_simple must be 1, 2 or 3")
 
     #SHADOW VALUE: 
     if shadow_value_simple == 1: 
@@ -412,132 +427,101 @@ def main_est(data, gender = "w", do_estimate_wage = "est_omega", print_reg = Fal
 
     
     elif shadow_value_simple == 2:
-
+        
         Shadow_value = data_regress[['t']]
         cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l']
     
         for i in cat:
             Shadow_value[i] = pd.qcut(data_regress[i], 50, labels = False, duplicates='raise') 
 
-        Shadow_value = pd.get_dummies(Shadow_value, columns=['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l' ], drop_first = True, dtype = float)
+        Shadow_value = pd.get_dummies(Shadow_value, columns=['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l'], drop_first = True, dtype = float)
 
 
         #Drop if less than two
         Shadow_value = Shadow_value.loc[:,(Shadow_value.sum()>2 )]
         Shadow_value = Shadow_value.drop(columns = ['t'])
 
-
-    
     elif shadow_value_simple == 3:
-        #power of 3 
+    
         Shadow_value = data_regress[['t']]
-        cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l']
-
-    
-        for i in cat:
-            Shadow_value[f'{i}'] = data_regress[i]
-            Shadow_value[f'{i}2'] = data_regress[i]*data_regress[i]
-            Shadow_value[f'{i}3'] = data_regress[i]*data_regress[i]*data_regress[i]
-        
-        Shadow_value = Shadow_value.drop(columns = ['t'])
-
-    elif shadow_value_simple == 4:
-        #power of 3 
-        Shadow_value = data_regress[['t']]
-        cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l']
-
-    
-        for i in cat:
-            Shadow_value[f'{i}'] = data_regress[i]
-            Shadow_value[f'{i}2'] = data_regress[i]*data_regress[i]
-        
-        Shadow_value = Shadow_value.drop(columns = ['t'])
-
-    elif shadow_value_simple == 5: 
-        Shadow_value = data_regress[['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l','log_fam_inc_l2', 'log_wealth_l2']]
-    
-    
-    
-    elif shadow_value_simple == 6: 
-        #power of 3 
-        Shadow_value = data_regress[['t']]
-        cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l','log_fam_inc_l2', 'log_wealth_l2']
-
-    
-        for i in cat:
-            Shadow_value[f'{i}'] = data_regress[i]
-            Shadow_value[f'{i}2'] = data_regress[i]*data_regress[i]
-            Shadow_value[f'{i}3'] = data_regress[i]*data_regress[i]*data_regress[i]
-        
-        Shadow_value = Shadow_value.drop(columns = ['t'])
-
-    
-    elif shadow_value_simple == 7:
-
-        Shadow_value = data_regress[['t']]
-        cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l','log_fam_inc_l2', 'log_wealth_l2']
+        cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l','delta_lag_log_fam_inc','delta_lag_log_wealth']
     
         for i in cat:
             Shadow_value[i] = pd.qcut(data_regress[i], 50, labels = False, duplicates='raise') 
 
-        Shadow_value = pd.get_dummies(Shadow_value, columns=['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l','log_fam_inc_l2', 'log_wealth_l2' ], drop_first = True, dtype = float)
+        Shadow_value = pd.get_dummies(Shadow_value, columns=['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l' ,'delta_lag_log_fam_inc','delta_lag_log_wealth'], drop_first = True, dtype = float)
 
 
         #Drop if less than two
         Shadow_value = Shadow_value.loc[:,(Shadow_value.sum()>2 )]
         Shadow_value = Shadow_value.drop(columns = ['t'])
 
-
-
-    #elif shadow_value_simple == 3:
-        
-    #    Shadow_value = data_regress[['t']]
-    #    cat = ['delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l']
-    
-    #    for i in cat:
-    #        Shadow_value[i] = pd.qcut(data_regress[i], 50, labels = False, duplicates='raise') 
-
-        
-    #    Shadow_value['delta_log_fam_inc_t'] = Shadow_value['delta_log_fam_inc'].astype('str') + '_' + Shadow_value[ 't'].astype('str')
-    #    Shadow_value['delta_log_wealth_t'] = Shadow_value['delta_log_wealth'].astype('str') + '_' + Shadow_value[ 't'].astype('str')
-    #    Shadow_value['log_fam_inc_l_t'] = Shadow_value['log_fam_inc_l'].astype('str') + '_' + Shadow_value[ 't'].astype('str')
-    #    Shadow_value['log_wealth_l_t'] = Shadow_value['log_wealth_l'].astype('str') + '_' + Shadow_value[ 't'].astype('str')
-
-    #    Shadow_value = pd.get_dummies(Shadow_value, columns=['delta_log_fam_inc_t', 'delta_log_wealth_t', 'log_fam_inc_l_t', 'log_wealth_l_t' ], drop_first = True, dtype = float)
-
-
-
-        #Drop if less than two
-    #    Shadow_value = Shadow_value.loc[:,(Shadow_value.sum()>2 )]
-    #    Shadow_value = Shadow_value.drop(columns = ['t', 'delta_log_fam_inc', 'delta_log_wealth', 'log_fam_inc_l', 'log_wealth_l'])
+      
 
     else:
         raise Exception("shadow_value_simple must be 1, 2 or 3")
 
+    #wealth and love non parametric
+    if wealth_love == 1:
+        Wealth_and_Love = data_regress[['delta_log_wealth_l','delta_log_wealth_l2']]
+        if  do_control_love:
+            Wealth_and_Love['delta_log_love'] = data_regress[['delta_log_Love']]
+            Wealth_and_Love['delta_log_love_l'] = data_regress[['delta_log_Love_l']]
+            Wealth_and_Love['delta_log_love_l2'] = data_regress[['delta_log_Love_l2']]
+        
+    
+    elif wealth_love == 2: 
+        Wealth_and_Love = data_regress[['t']]
+        cat = ['delta_log_wealth_l','delta_log_wealth_l2']
+        if  do_control_love:            
+            cat = ['delta_log_wealth_l','delta_log_wealth_l2','delta_log_Love','delta_log_Love_l','delta_log_Love_l2']
+        
+        for i in cat:
+            Wealth_and_Love[i] = pd.qcut(data_regress[i], 50, labels = False, duplicates='raise') 
 
-    df = data_regress.drop(columns = ['t','init_barg',f'inc_share_{spouse}_l','control_cons', f'control_part_inc_{gender}', f'delta_log_earnings_{spouse}', 'log_earnings_w', 'log_fam_inc' , 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'inc_share_w', 'inc_share_w_l','log_wealth', 'wealth_F',  f'y_{gender}', 'idx','delta_log_fam_inc', 'log_fam_inc_l', 'log_wealth_l', 'log_fam_inc_l2', 'log_wealth_l2', 'delta_log_wealth'])
+        if  do_control_love:            
+            Wealth_and_Love = pd.get_dummies(Wealth_and_Love, columns=['delta_log_wealth_l','delta_log_wealth_l2','delta_log_Love','delta_log_Love_l','delta_log_Love_l2'], drop_first = True, dtype = float)
+        else:
+            Wealth_and_Love = pd.get_dummies(Wealth_and_Love, columns=['delta_log_wealth_l','delta_log_wealth_l2'], drop_first = True, dtype = float)
+
+
+        #Drop if less than two
+        Wealth_and_Love = Wealth_and_Love.loc[:,(Wealth_and_Love.sum()>2 )]
+        Wealth_and_Love = Wealth_and_Love.drop(columns = ['t'])
+ 
+    else:
+        raise Exception("wealth love must be 1, 2 or 3")
+
+
+
+    df = data_regress.drop(columns = ['t','delta_lag_log_fam_inc','delta_lag_log_wealth','init_barg',f'inc_share_{spouse}_l','cons_l','delta_log_cons','control_cons','delta_log_Love','delta_log_Love_l','delta_log_Love_l2', f'control_part_inc_{gender}', f'delta_log_earnings_{spouse}', 'log_earnings_w', 'log_fam_inc' , 'log_earnings_m','log_earnings_w_l', 'log_earnings_m_l', 'log_wealth', 'wealth_F',  f'y_{gender}', 'idx','delta_log_fam_inc', 'log_fam_inc_l', 'log_wealth_l', 'log_fam_inc_l2', 'log_wealth_l2', 'delta_log_wealth', 'delta_log_wealth_l','delta_log_wealth_l2','delta_log_BMI_w','delta_log_BMI_w_l','delta_log_BMI_w_l2','delta_log_BMI_m','delta_log_BMI_m_l','delta_log_BMI_m_l2'])
     
 
     #df = df.drop(columns = ['wage_shock_j_l2','wage_shock_l2','BMI_l2','BMI_j_l2','delta_log_wealth_l2'])
     
-    if not do_control_love:
-         df = df.drop(columns = ['delta_log_Love','delta_log_Love_l','delta_log_Love_l2'])
     
 
     #REGRESS
     y  = data_regress[f'y_{gender}']
-    x = pd.concat([df,  X_t , Shadow_value, inc_share, cons], axis=1 )
+    x = pd.concat([df,  X_t , Shadow_value, inc_share, cons, Wealth_and_Love ], axis=1 )
     #x = x.T.drop_duplicates().T #drop duplicates
     x = sm.add_constant(x)  
     #result = sm.OLS(y,x).fit() 
     result = sm.OLS(y,x).fit().get_robustcov_results(cov_type = 'cluster', groups = data_regress['idx'])
     N = result.nobs
     #SAVE WALD TEST
-    Wald_FC = result.wald_test('(wage_shock_l=0, wage_shock_l2=0, wage_shock_j=0, wage_shock_j_l=0, wage_shock_j_l2=0, BMI=0, BMI_l=0, BMI_l2=0,BMI_j=0, BMI_j_l=0, BMI_j_l2=0, D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
-    Wald_NC = result.wald_test('(wage_shock_l=0, wage_shock_l2=0,                wage_shock_j_l=0, wage_shock_j_l2=0,        BMI_l=0, BMI_l2=0,         BMI_j_l=0, BMI_j_l2=0, D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
-    Wald_FC_noW = result.wald_test('(                                                                                BMI=0, BMI_l=0, BMI_l2=0,BMI_j=0, BMI_j_l=0, BMI_j_l2=0, D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
-    Wald_NC_noW = result.wald_test('(                                                                                       BMI_l=0, BMI_l2=0,         BMI_j_l=0, BMI_j_l2=0, D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
-    
+    if BMI_dummy:
+        Wald_FC = result.wald_test('(wage_shock_l=0, wage_shock_l2=0, wage_shock_j=0, wage_shock_j_l=0, wage_shock_j_l2=0, BMI_pos=0, BMI_l_pos=0, BMI_l2_pos=0,BMI_j_pos = 0, BMI_j_l_pos=0, BMI_j_l2_pos=0, BMI_neg=0, BMI_l_neg=0, BMI_l2_neg=0,BMI_j_neg = 0, BMI_j_l_neg=0, BMI_j_l2_neg=0, D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
+        Wald_NC = result.wald_test('(wage_shock_l=0, wage_shock_l2=0,                wage_shock_j_l=0, wage_shock_j_l2=0,             BMI_l_pos=0, BMI_l2_pos=0,               BMI_j_l_pos=0, BMI_j_l2_pos=0,            BMI_l_neg=0, BMI_l2_neg=0,BMI_j_neg = 0, BMI_j_l_neg=0, BMI_j_l2_neg=0,  D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
+        Wald_FC_noW = -1
+        Wald_NC_noW = -1
+        
+    else: 
+        Wald_FC = result.wald_test('(wage_shock_l=0, wage_shock_l2=0, wage_shock_j=0, wage_shock_j_l=0, wage_shock_j_l2=0, BMI=0, BMI_l=0, BMI_l2=0,BMI_j=0, BMI_j_l=0, BMI_j_l2=0, D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
+        Wald_NC = result.wald_test('(wage_shock_l=0, wage_shock_l2=0,                wage_shock_j_l=0, wage_shock_j_l2=0,        BMI_l=0, BMI_l2=0,         BMI_j_l=0, BMI_j_l2=0, D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
+        Wald_FC_noW = result.wald_test('(                                                                                BMI=0, BMI_l=0, BMI_l2=0,BMI_j=0, BMI_j_l=0, BMI_j_l2=0, D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
+        Wald_NC_noW = result.wald_test('(                                                                                       BMI_l=0, BMI_l2=0,         BMI_j_l=0, BMI_j_l2=0, D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
+        
     #Wald_FC = result.wald_test('(wage_shock_l=0,  wage_shock_j=0, wage_shock_j_l=0,  BMI=0, BMI_l=0, BMI_j=0, BMI_j_l=0,  D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
     #Wald_NC = result.wald_test('(wage_shock_l=0,                wage_shock_j_l=0,         BMI_l=0,          BMI_j_l=0,  D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
     #Wald_FC_noW = result.wald_test('(                                                                                BMI=0, BMI_l=0, BMI_j=0, BMI_j_l=0,  D_init_barg_0=0, D_init_barg_2=0)', use_f = True)
@@ -552,12 +536,28 @@ def main_est(data, gender = "w", do_estimate_wage = "est_omega", print_reg = Fal
     coef_dict['wage_shock_j_l2'] = result2.params['wage_shock_j_l2']
     coef_dict['wage_shock_l'] = result2.params['wage_shock_l']
     coef_dict['wage_shock_l2'] = result2.params['wage_shock_l2']
-    coef_dict['BMI'] = result2.params['BMI']
-    coef_dict['BMI_j'] = result2.params['BMI_j']
-    coef_dict['BMI_j_l'] = result2.params['BMI_j_l']
-    coef_dict['BMI_l'] = result2.params['BMI_l']
-    coef_dict['BMI_j_l2'] = result2.params['BMI_j_l2']
-    coef_dict['BMI_l2'] = result2.params['BMI_l2']
+    if BMI_dummy: 
+        coef_dict['BMI_pos'] = result2.params['BMI_pos']
+        coef_dict['BMI_j_pos'] = result2.params['BMI_j_pos']
+        coef_dict['BMI_j_l_pos'] = result2.params['BMI_j_l_pos']
+        coef_dict['BMI_l_pos'] = result2.params['BMI_l_pos']
+        coef_dict['BMI_j_l2_pos'] = result2.params['BMI_j_l2_pos']
+        coef_dict['BMI_l2_pos'] = result2.params['BMI_l2_pos']
+
+        
+        coef_dict['BMI_neg'] = result2.params['BMI_neg']
+        coef_dict['BMI_j_neg'] = result2.params['BMI_j_neg']
+        coef_dict['BMI_j_l_neg'] = result2.params['BMI_j_l_neg']
+        coef_dict['BMI_l_neg'] = result2.params['BMI_l_neg']
+        coef_dict['BMI_j_l2_neg'] = result2.params['BMI_j_l2_neg']
+        coef_dict['BMI_l2_neg'] = result2.params['BMI_l2_neg']
+    else:
+        coef_dict['BMI'] = result2.params['BMI']
+        coef_dict['BMI_j'] = result2.params['BMI_j']
+        coef_dict['BMI_j_l'] = result2.params['BMI_j_l']
+        coef_dict['BMI_l'] = result2.params['BMI_l']
+        coef_dict['BMI_j_l2'] = result2.params['BMI_j_l2']
+        coef_dict['BMI_l2'] = result2.params['BMI_l2']
     coef_dict['D_init_barg0'] = result2.params['D_init_barg_0']
     coef_dict['D_init_barg2'] = result2.params['D_init_barg_2']
     coef_wage_shock_j = result2.params['wage_shock_j']
