@@ -127,8 +127,8 @@ namespace single {
 
         // bounds
         lb[0] = 1.0e-6;
-        //ub[0] = resources_single(labor,A,K,gender,par)-1.0e-6;
-        ub[0] = A; /*income is end period, so you can only consume saving*/
+        ub[0] = resources_single(labor,A,K,gender,par)-1.0e-6;
+        //ub[0] = A; /*income is end period, so you can only consume saving*/
         nlopt_set_lower_bounds(opt, lb);
         nlopt_set_upper_bounds(opt, ub);
 

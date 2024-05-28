@@ -14,8 +14,26 @@ def create_data(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulate
     #update stockastic elements.
     shape_sim = (par.simN,par.T)
     sim.draw_love = par.sigma_love * np.random.normal(size=shape_sim)
-    sim.draw_Kw = par.sigma_K * np.random.normal(size=shape_sim)
-    sim.draw_Km = par.sigma_K * np.random.normal(size=shape_sim)
+    if par.do_HK:
+        sim.draw_Kw_perm = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
+        sim.draw_Km_perm = np.exp(-0.5*par.sigma_K**2 + par.sigma_K*np.random.normal(size=shape_sim))
+        sim.draw_Kw_temp = np.zeros(shape_sim)
+        sim.draw_Km_temp = np.zeros(shape_sim)
+    else:
+        sim.draw_Kw_temp = par.sigma_K*np.random.normal(size=shape_sim)
+        sim.draw_Km_temp = par.sigma_K*np.random.normal(size=shape_sim)
+        sim.draw_Kw_perm = np.ones(shape_sim)
+        sim.draw_Km_perm = np.ones(shape_sim)
+    
+    sim.draw_Zw = np.random.uniform(size=shape_sim)
+    sim.draw_Zm = np.random.uniform(size=shape_sim) 
+    
+    sim.init_Kw = np.random.uniform(low=0.0, high =0.2,size=par.simN)
+    sim.init_Km = np.random.uniform(low=0.0, high =0.2,size=par.simN)
+    
+
+    sim.init_distr = np.random.choice(3,par.simN, p =[par.pr_distr_factor*(1-par.pr_distr_factor),par.pr_distr_factor*par.pr_distr_factor+(1-par.pr_distr_factor)*(1-par.pr_distr_factor),par.pr_distr_factor*(1-par.pr_distr_factor)])
+    sim.init_distr_power_lag = np.random.uniform(low=0.0, high =0.4, size=par.simN)
 
     #simulate the data
     model.simulate()
@@ -86,7 +104,7 @@ def create_data(model,start_p = 1, end_p = 4, to_xl = False, name_xl = 'simulate
             'Love': model.sim.love[:,i],
             'exp_w': model.sim.exp_w[:,i],
             'exp_m': model.sim.exp_m[:,i], 
-            'wage_w_orig': wage_w[:,i],
+            'wage_w': wage_w[:,i],
             'wage_m_orig': wage_m[:,i],
             'hours_w_orig':   hours_w_orig[:,i],  
             'hours_m_orig':   hours_m_orig[:,i],  
@@ -122,9 +140,15 @@ def create_variable(data, par, print_aux_reg = False):
     data['omega_w'] = 1 + data['omega_w'] 
     data['omega_m'] = 1 + data['omega_m'] 
 
+
     
     #remove negative values
     data['Love'] = 1 + data['Love'] 
+
+    
+    #drop wealth that is close to zero (problem with log)
+    data = data[data['wealth']>0.01]
+
 
     #drop if single
     data = data[data['couple']>0.5]
@@ -177,6 +201,12 @@ def create_variable(data, par, print_aux_reg = False):
         data_l3[log_name] = np.log(data_l3[val])
 
         data_l[name] = data_l[val]
+    
+    #remove value for those who have saving that are very close to zero and therefor become -inf? 
+    #data['log_wealth'] = data['log_wealth'].replace(-np.inf,np.nan, inplace = True)
+    #data_l['log_wealth'] = data_l['log_wealth'].replace(-np.inf,np.nan, inplace = True)
+    #data_l2['log_wealth'] = data_l2['log_wealth'].replace(-np.inf,np.nan, inplace = True)
+    #data_l3['log_wealth'] = data_l3['log_wealth'].replace(-np.inf,np.nan, inplace = True)
 
 
     data =  data.merge(data_l, how='left', left_on = ['t','idx'], right_on = ['t','idx'], suffixes=('', '_l'))
@@ -208,7 +238,7 @@ def create_variable(data, par, print_aux_reg = False):
 
         
         data[delta] = data[name]-data[name_l]
-
+    
 
     #DROP NAN
     data = data.dropna(subset = ['delta_log_wage_w','delta_log_wage_m'])
@@ -233,6 +263,7 @@ def create_variable(data, par, print_aux_reg = False):
  
 
     #Create variables
+    data['delta_log_wealth']
     data['delta_omega_w'] = data['log_omega_w']-data['log_omega_w_l']
     data['delta_omega_m'] = data['log_omega_m']-data['log_omega_m_l']    
     data['delta_omega_w_l'] = data['log_omega_w_l']-data['log_omega_w_l2']
@@ -405,18 +436,33 @@ def main_est(data, gender = "w", do_estimate_wage = "est_omega", print_reg = Fal
         inc_share = inc_share.drop(columns = ['t'])
 
     elif part_earning_simple == 3: 
+        #it does not work ! problem you control inderect for income shock
+        #inc_share = data_regress[['t']]
+        #cat = [f'control_part_inc_{gender}', f'inc_share_{spouse}_l', f'delta_log_earnings_{spouse}']
+    
+        #for i in cat:
+        #    inc_share[i] = pd.qcut(data_regress[i], 50, labels = False, duplicates='raise') 
+
+        #inc_share = pd.get_dummies(inc_share, columns=[f'control_part_inc_{gender}',f'inc_share_{spouse}_l',f'delta_log_earnings_{spouse}' ], drop_first = True, dtype = float)
+
+
+        #Drop if less than two
+        #inc_share = inc_share.loc[:,(inc_share.sum()>2 )]
+        #inc_share = inc_share.drop(columns = ['t'])
+
         inc_share = data_regress[['t']]
-        cat = [f'control_part_inc_{gender}', f'inc_share_{spouse}_l', f'delta_log_earnings_{spouse}']
+        cat = [f'control_part_inc_{gender}',]
     
         for i in cat:
             inc_share[i] = pd.qcut(data_regress[i], 50, labels = False, duplicates='raise') 
 
-        inc_share = pd.get_dummies(inc_share, columns=[f'control_part_inc_{gender}',f'inc_share_{spouse}_l',f'delta_log_earnings_{spouse}' ], drop_first = True, dtype = float)
+        inc_share = pd.get_dummies(inc_share, columns=[f'control_part_inc_{gender}' ], drop_first = True, dtype = float)
 
 
         #Drop if less than two
         inc_share = inc_share.loc[:,(inc_share.sum()>2 )]
         inc_share = inc_share.drop(columns = ['t'])
+
 
     else:
         raise Exception("part_earning_simple must be 1, 2 or 3")

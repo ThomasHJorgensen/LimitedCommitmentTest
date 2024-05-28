@@ -45,7 +45,7 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         
         par.gamma3_w = 1.5       
-        par.gamma3_m= 1.5     
+        par.gamma3_m=  1.5     #1.2 i imai and keane
 
 
         # wage process
@@ -113,7 +113,7 @@ class LimitedCommitmentModelClass(EconModelClass):
         par.pr_distr_factor = 0.5
 
         # simulation
-        par.seed = 9210
+        par.seed = 10
         par.simN = 5_000
 
         # bargaining model
@@ -226,7 +226,8 @@ class LimitedCommitmentModelClass(EconModelClass):
         sim.draw_Zm = np.random.uniform(size=shape_sim) 
 
         # initial distribution
-        iA_init = 100
+        #iA_init = 100
+        iA_init = 0
         sim.init_A = par.grid_A[iA_init] + np.zeros(par.simN)
         sim.init_Aw = par.grid_Aw[iA_init] + np.zeros(par.simN)
         sim.init_Am = par.grid_Am[iA_init] +  np.zeros(par.simN)
