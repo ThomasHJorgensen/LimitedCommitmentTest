@@ -208,6 +208,9 @@ class LimitedCommitmentModelClass(EconModelClass):
         sim.value = np.nan + np.ones(shape_sim)
         sim.util = np.nan + np.ones(shape_sim)
 
+        sim.Vw_single = np.nan + np.ones(shape_sim)
+        sim.Vm_single = np.nan + np.ones(shape_sim)
+
         # shocks
         np.random.seed(par.seed)
         sim.draw_love = par.sigma_love * np.random.normal(size=shape_sim)
