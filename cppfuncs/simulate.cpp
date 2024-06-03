@@ -401,6 +401,21 @@ namespace sim {
 
                     }
 
+
+                    // store value of being single
+                    // pick relevant solution for single, depending on whether just became single
+                    int idx_sol_single_w = index::single(t,iZw,0,0,par); 
+                    int idx_sol_single_m = index::single(t,iZm,0,0,par); 
+                    double *Vw_single = &sol->Vw_trans_single[idx_sol_single_w];
+                    double *Vm_single = &sol->Vm_trans_single[idx_sol_single_m];
+                    if (power_lag<0){
+                        Vw_single = &sol->Vw_single[idx_sol_single_w];
+                        Vm_single = &sol->Vm_single[idx_sol_single_m];
+                    } 
+                    // interpolate value
+                    sim->Vw_single[it] = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,Vw_single,Aw_lag,sim->Kw[it]);
+                    sim->Vm_single[it] = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,Vm_single,Am_lag,sim->Km[it]);
+
                 } // t
             } // i
 
