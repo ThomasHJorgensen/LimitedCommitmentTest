@@ -210,6 +210,10 @@ class LimitedCommitmentModelClass(EconModelClass):
 
         sim.Vw_single = np.nan + np.ones(shape_sim)
         sim.Vm_single = np.nan + np.ones(shape_sim)
+        sim.labor_w_couple = np.nan + np.ones(shape_sim)               
+        sim.labor_m_couple = np.nan + np.ones(shape_sim)
+        sim.Vw_couple = np.nan + np.ones(shape_sim)               
+        sim.Vm_couple = np.nan + np.ones(shape_sim)
 
         # shocks
         np.random.seed(par.seed)

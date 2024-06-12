@@ -219,6 +219,7 @@ namespace sim {
                     int it = index::index2(i,t,par->simN,par->T);
                     int it_1 = index::index2(i,t-1,par->simN,par->T);
                     int it1 = index::index2(i,t+1,par->simN,par->T);
+                    
 
                     double A_lag = sim->init_A[i];
                     double Aw_lag = sim->init_Aw[i];
@@ -363,6 +364,8 @@ namespace sim {
                         sim->labor_w[it] = MIN(sim->labor_w[it],1.0); // work between 0 and 1
                         sim->labor_m[it] = MAX(sim->labor_m[it],0.0); // work between 0 and 1
                         sim->labor_m[it] = MIN(sim->labor_m[it],1.0); // work between 0 and 1
+                        
+                        sim->love[it1] = sim->love[it] + sim->draw_love[it1]; //irrelevant, but need it for test
 
                         double resources_w = single::resources_single(sim->labor_w[it],Aw_lag,sim->Kw[it],woman,par); 
                         double resources_m = single::resources_single(sim->labor_m[it],Am_lag,sim->Km[it],man,par); 
@@ -376,6 +379,8 @@ namespace sim {
                         // update end-of-period states
                         sim->Aw[it] = resources_w - sim->cons_w[it];
                         sim->Am[it] = resources_m - sim->cons_m[it];
+
+                        sim->A[it] = sim->Am[it] + sim->Aw[it];
                     
 
                         if(t<par->T-1){
@@ -415,6 +420,26 @@ namespace sim {
                     // interpolate value
                     sim->Vw_single[it] = tools::interp_2d(par->grid_Aw,par->grid_K,par->num_A,par->num_K,Vw_single,Aw_lag,sim->Kw[it]);
                     sim->Vm_single[it] = tools::interp_2d(par->grid_Am,par->grid_K,par->num_A,par->num_K,Vm_single,Am_lag,sim->Km[it]);
+                    
+                    // store value of being a couple
+                    
+                    if (power < 0) {
+                        power = power_lag;
+                    }
+                    int idx_sol = index::couple(t,iZw,iZm,0,0,0,0,0,par);
+                    A_lag = Aw_lag + Am_lag;
+                    tools::interp_5d_2out(&sim->labor_w_couple[it],&sim->labor_m_couple[it], par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->labor_w_couple[idx_sol],&sol->labor_m_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]);
+                    sim->labor_w_couple[it] = MAX(sim->labor_w_couple[it],0.0); // work between 0 and 1
+                    sim->labor_w_couple[it] = MIN(sim->labor_w_couple[it],1.0); // work between 0 and 1
+                    sim->labor_m_couple[it] = MAX(sim->labor_m_couple[it],0.0); // work between 0 and 1
+                    sim->labor_m_couple[it] = MIN(sim->labor_m_couple[it],1.0); // work between 0 and 1
+
+                    double cons = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->cons_w_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
+                    
+                    sim->Vw_couple[it]  = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vw_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
+                    sim->Vm_couple[it]  = tools::interp_5d(par->grid_power,par->grid_love,par->grid_A,par->grid_K,par->grid_K ,par->num_power,par->num_love,par->num_A,par->num_K,par->num_K, &sol->Vm_couple[idx_sol], power,sim->love[it],A_lag,sim->Kw[it],sim->Km[it]); // same for men and women in remain couple
+                    
+
 
                 } // t
             } // i
